@@ -2,7 +2,7 @@ import { useContext } from 'react';
 import {
   PortfolioContext,
   type PortfolioContextValue,
-} from '../context/PortfolioContext';
+} from '../context/portfolioContextValue';
 
 export function usePortfolio(): PortfolioContextValue {
   const ctx = useContext(PortfolioContext);

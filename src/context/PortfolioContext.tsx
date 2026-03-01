@@ -1,21 +1,15 @@
 import {
-  createContext,
   useReducer,
   useCallback,
   type ReactNode,
 } from 'react';
 import type { SecurityResponse } from '../api/types';
-import type { Holding, PortfolioPhase, ViewMode } from '../domain/types';
+import type { Holding, ViewMode } from '../domain/types';
 import { fetchSecurities } from '../api/client';
-
-interface PortfolioState {
-  readonly holdings: readonly Holding[];
-  readonly securityData: ReadonlyMap<string, SecurityResponse>;
-  readonly phase: PortfolioPhase;
-  readonly errorMessage: string | null;
-  readonly failedTickers: readonly string[];
-  readonly viewMode: ViewMode;
-}
+import {
+  PortfolioContext,
+  type PortfolioState,
+} from './portfolioContextValue';
 
 type PortfolioAction =
   | { type: 'ADD_HOLDING'; holding: Holding }
@@ -121,20 +115,6 @@ function reducer(
   }
 }
 
-export interface PortfolioContextValue {
-  readonly state: PortfolioState;
-  readonly addHolding: (ticker: string, quantity: number) => void;
-  readonly addHoldings: (holdings: readonly Holding[]) => void;
-  readonly removeHolding: (ticker: string) => void;
-  readonly clearHoldings: () => void;
-  readonly analyzePortfolio: () => Promise<void>;
-  readonly setViewMode: (viewMode: ViewMode) => void;
-  readonly reset: () => void;
-}
-
-export const PortfolioContext =
-  createContext<PortfolioContextValue | null>(null);
-
 export function PortfolioProvider({
   children,
 }: {
@@ -207,19 +187,19 @@ export function PortfolioProvider({
     dispatch({ type: 'RESET' });
   }, []);
 
-  const value: PortfolioContextValue = {
-    state,
-    addHolding,
-    addHoldings,
-    removeHolding,
-    clearHoldings,
-    analyzePortfolio,
-    setViewMode,
-    reset,
-  };
-
   return (
-    <PortfolioContext.Provider value={value}>
+    <PortfolioContext.Provider
+      value={{
+        state,
+        addHolding,
+        addHoldings,
+        removeHolding,
+        clearHoldings,
+        analyzePortfolio,
+        setViewMode,
+        reset,
+      }}
+    >
       {children}
     </PortfolioContext.Provider>
   );

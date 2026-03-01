@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { PortfolioInputPanel } from './PortfolioInputPanel';
 import { PortfolioProvider } from '../../context/PortfolioContext';
 
