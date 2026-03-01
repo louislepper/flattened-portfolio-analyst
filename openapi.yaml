@@ -1,0 +1,141 @@
+openapi: 3.0.3
+info:
+  title: Flattened Portfolio Analyst API
+  description: >
+    API for fetching security data including composite securities
+    (ETFs/funds) with their underlying holdings.
+  version: 1.0.0
+
+servers:
+  - url: /api/v1
+
+paths:
+  /securities/{ticker}:
+    get:
+      summary: Get security data by ticker
+      description: >
+        Returns security data including price, tags, and composite
+        securities (underlying holdings for ETFs/funds).
+      operationId: getSecurity
+      parameters:
+        - name: ticker
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The stock or ETF ticker symbol
+          example: GOOG
+      responses:
+        "200":
+          description: Security data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SecurityResponse"
+        "404":
+          description: Security not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    SecurityTag:
+      type: object
+      required:
+        - key
+        - name
+        - value
+      properties:
+        key:
+          type: string
+          description: Machine-readable tag identifier
+          example: market_cap
+        name:
+          type: string
+          description: Human-readable tag display name
+          example: Market Capitalisation
+        value:
+          type: string
+          description: The tag value for this security
+          example: Large Cap
+
+    CompositeSecurity:
+      type: object
+      required:
+        - ticker
+        - tags
+        - price
+        - percentage
+      properties:
+        ticker:
+          type: string
+          description: Ticker of the underlying security
+          example: GOOG
+        tags:
+          type: array
+          items:
+            $ref: "#/components/schemas/SecurityTag"
+        price:
+          type: number
+          description: Current price in cents
+          example: 15000
+        percentage:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          description: >
+            Fraction of the parent security's value allocated to
+            this underlying holding (0 to 1)
+          example: 0.2
+
+    SecurityResponse:
+      type: object
+      required:
+        - ticker
+        - tags
+        - price
+        - compositeSecurities
+      properties:
+        ticker:
+          type: string
+          description: The security ticker symbol
+          example: GOOG
+        tags:
+          type: array
+          items:
+            $ref: "#/components/schemas/SecurityTag"
+        price:
+          type: number
+          description: Current price in cents
+          example: 15000
+        compositeSecurities:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompositeSecurity"
+          description: >
+            Underlying holdings for composite securities
+            (ETFs/funds). Empty array for simple stocks.
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error code
+          example: NOT_FOUND
+        message:
+          type: string
+          description: Human-readable error message
+          example: Security with ticker XYZ not found
