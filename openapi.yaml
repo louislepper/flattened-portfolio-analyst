@@ -109,6 +109,7 @@ components:
       type: object
       required:
         - ticker
+        - type
         - tags
         - price
         - compositeSecurities
@@ -118,6 +119,15 @@ components:
           type: string
           description: The security ticker symbol
           example: GOOG
+        type:
+          type: string
+          enum:
+            - stock
+            - etf
+          description: >
+            Whether this security is a simple stock or a composite
+            security (ETF/fund) containing underlying holdings.
+          example: stock
         tags:
           type: array
           items:

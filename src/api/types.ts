@@ -12,8 +12,11 @@ export interface CompositeSecurity {
   readonly refreshedAt: string;
 }
 
+export type SecurityType = 'stock' | 'etf';
+
 export interface SecurityResponse {
   readonly ticker: string;
+  readonly type: SecurityType;
   readonly tags: readonly SecurityTag[];
   readonly price: number;
   readonly compositeSecurities: readonly CompositeSecurity[];

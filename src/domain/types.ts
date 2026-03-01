@@ -18,6 +18,7 @@ export interface FlattenedAllocation {
   readonly percentage: number;
   readonly tags: readonly SecurityTag[];
   readonly components: readonly AllocationComponent[];
+  readonly isUnknown: boolean;
 }
 
 export interface TagBreakdownEntry {
