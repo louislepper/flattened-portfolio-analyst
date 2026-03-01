@@ -123,4 +123,51 @@ describe('App integration', () => {
     },
     15000,
   );
+
+  it(
+    'shows unknown portion for ETF with partial composites',
+    async () => {
+      const user = userEvent.setup();
+      render(<App />);
+
+      await addHolding(user, 'PARTIAL_ETF', '2');
+
+      await user.click(
+        screen.getByRole('button', {
+          name: 'Analyze Portfolio',
+        }),
+      );
+
+      await waitFor(
+        () => {
+          expect(
+            screen.getByText('Portfolio Allocation'),
+          ).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
+
+      const table = screen.getByRole('table');
+      expect(
+        within(table).getByText('GOOG'),
+      ).toBeInTheDocument();
+      expect(
+        within(table).getByText('AAPL'),
+      ).toBeInTheDocument();
+      expect(
+        within(table).getByText(
+          'Unknown (From PARTIAL_ETF)',
+        ),
+      ).toBeInTheDocument();
+
+      // Unknown entry shows dash for shares
+      const unknownRow = within(table)
+        .getByText('Unknown (From PARTIAL_ETF)')
+        .closest('tr')!;
+      expect(
+        within(unknownRow).getByText('-'),
+      ).toBeInTheDocument();
+    },
+    15000,
+  );
 });
