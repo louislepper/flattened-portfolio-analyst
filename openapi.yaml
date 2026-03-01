@@ -74,6 +74,7 @@ components:
         - tags
         - price
         - percentage
+        - refreshedAt
       properties:
         ticker:
           type: string
@@ -87,6 +88,13 @@ components:
           type: number
           description: Current price in cents
           example: 15000
+        refreshedAt:
+          type: string
+          format: date-time
+          description: >
+            Timestamp when the price of this composite security
+            was last refreshed
+          example: "2026-03-01T12:00:00Z"
         percentage:
           type: number
           format: double
@@ -104,6 +112,7 @@ components:
         - tags
         - price
         - compositeSecurities
+        - refreshedAt
       properties:
         ticker:
           type: string
@@ -117,6 +126,13 @@ components:
           type: number
           description: Current price in cents
           example: 15000
+        refreshedAt:
+          type: string
+          format: date-time
+          description: >
+            Timestamp when the price and composite security
+            proportions were last refreshed
+          example: "2026-03-01T12:00:00Z"
         compositeSecurities:
           type: array
           items:
