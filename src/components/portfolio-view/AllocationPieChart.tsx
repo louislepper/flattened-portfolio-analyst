@@ -1,3 +1,4 @@
+import type { PieLabelRenderProps } from 'recharts';
 import { PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 import Box from '@mui/material/Box';
 import type { FlattenedAllocation } from '../../domain/types';
@@ -50,6 +51,13 @@ function toChartData(
   }));
 }
 
+function renderLabel(props: PieLabelRenderProps): string {
+  const name = String(props.name ?? '');
+  const pct = (props as unknown as { percentage: number })
+    .percentage;
+  return `${name} ${formatPercentage(pct)}`;
+}
+
 export function AllocationPieChart({
   viewMode,
   allocations,
@@ -71,8 +79,7 @@ export function AllocationPieChart({
           cx="50%"
           cy="50%"
           outerRadius={140}
-          label={({ name, percentage }) =>
-            `${name} ${formatPercentage(percentage)}`}
+          label={renderLabel}
         >
           {data.map((_, index) => (
             <Cell
@@ -83,10 +90,15 @@ export function AllocationPieChart({
         </Pie>
         <Tooltip
           formatter={(
-            _value: number,
-            _name: string,
-            props: { payload: ChartEntry },
-          ) => formatPercentage(props.payload.percentage)}
+            _value,
+            _name,
+            props,
+          ) => {
+            const entry = props.payload as
+              ChartEntry | undefined;
+            if (!entry) return '';
+            return formatPercentage(entry.percentage);
+          }}
         />
         <Legend />
       </PieChart>
