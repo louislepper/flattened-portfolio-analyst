@@ -15,6 +15,7 @@ const SAMPLE_ALLOCATIONS = [
       },
     ],
     components: [],
+    isUnknown: false,
   },
   {
     ticker: 'MSFT',
@@ -29,6 +30,7 @@ const SAMPLE_ALLOCATIONS = [
       },
     ],
     components: [],
+    isUnknown: false,
   },
 ];
 
@@ -44,6 +46,25 @@ export const Securities: Story = {
   args: {
     viewMode: { kind: 'securities' },
     allocations: SAMPLE_ALLOCATIONS,
+    tagBreakdown: [],
+  },
+};
+
+export const WithUnknownEntries: Story = {
+  args: {
+    viewMode: { kind: 'securities' },
+    allocations: [
+      ...SAMPLE_ALLOCATIONS,
+      {
+        ticker: 'Unknown (From PARTIAL_ETF)',
+        effectiveShares: 0,
+        totalValueCents: 80000,
+        percentage: 0.15,
+        tags: [],
+        components: [],
+        isUnknown: true,
+      },
+    ],
     tagBreakdown: [],
   },
 };

@@ -11,6 +11,7 @@ const ALLOCATIONS: FlattenedAllocation[] = [
     percentage: 0.6,
     tags: [],
     components: [],
+    isUnknown: false,
   },
   {
     ticker: 'MSFT',
@@ -19,6 +20,7 @@ const ALLOCATIONS: FlattenedAllocation[] = [
     percentage: 0.4,
     tags: [],
     components: [],
+    isUnknown: false,
   },
 ];
 

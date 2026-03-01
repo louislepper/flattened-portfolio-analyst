@@ -66,7 +66,9 @@ export function AllocationList({
             <TableRow key={a.ticker}>
               <TableCell>{a.ticker}</TableCell>
               <TableCell align="right">
-                {a.effectiveShares.toFixed(2)}
+                {a.isUnknown
+                  ? '-'
+                  : a.effectiveShares.toFixed(2)}
               </TableCell>
               <TableCell align="right">
                 {formatDollars(a.totalValueCents)}

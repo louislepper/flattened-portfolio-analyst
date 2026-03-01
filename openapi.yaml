@@ -149,7 +149,8 @@ components:
             $ref: "#/components/schemas/CompositeSecurity"
           description: >
             Underlying holdings for composite securities
-            (ETFs/funds). Empty array for simple stocks.
+            (ETFs/funds). The percentages of securities may not add to 100% if some of our data is missing.
+            If compositeSecurities is empty, it means we don't know the proportions / underlying securities of this ETF.
 
     ErrorResponse:
       type: object

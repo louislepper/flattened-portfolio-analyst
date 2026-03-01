@@ -21,6 +21,7 @@ const ALLOCATIONS = [
       },
     ],
     components: [],
+    isUnknown: false,
   },
 ];
 

@@ -5,6 +5,7 @@ const REFRESHED_AT = '2026-03-01T00:00:00Z';
 export const MOCK_SECURITIES: Record<string, SecurityResponse> = {
   GOOG: {
     ticker: 'GOOG',
+    type: 'stock',
     price: 15000,
     refreshedAt: REFRESHED_AT,
     tags: [
@@ -23,6 +24,7 @@ export const MOCK_SECURITIES: Record<string, SecurityResponse> = {
   },
   MSFT: {
     ticker: 'MSFT',
+    type: 'stock',
     price: 40000,
     refreshedAt: REFRESHED_AT,
     tags: [
@@ -41,6 +43,7 @@ export const MOCK_SECURITIES: Record<string, SecurityResponse> = {
   },
   AAPL: {
     ticker: 'AAPL',
+    type: 'stock',
     price: 20000,
     refreshedAt: REFRESHED_AT,
     tags: [
@@ -59,6 +62,7 @@ export const MOCK_SECURITIES: Record<string, SecurityResponse> = {
   },
   JPM: {
     ticker: 'JPM',
+    type: 'stock',
     price: 18000,
     refreshedAt: REFRESHED_AT,
     tags: [
@@ -77,6 +81,7 @@ export const MOCK_SECURITIES: Record<string, SecurityResponse> = {
   },
   TECH_ETF: {
     ticker: 'TECH_ETF',
+    type: 'etf',
     price: 50000,
     refreshedAt: REFRESHED_AT,
     tags: [
@@ -145,6 +150,7 @@ export const MOCK_SECURITIES: Record<string, SecurityResponse> = {
   },
   BALANCED_ETF: {
     ticker: 'BALANCED_ETF',
+    type: 'etf',
     price: 30000,
     refreshedAt: REFRESHED_AT,
     tags: [],
@@ -186,5 +192,48 @@ export const MOCK_SECURITIES: Record<string, SecurityResponse> = {
         ],
       },
     ],
+  },
+  PARTIAL_ETF: {
+    ticker: 'PARTIAL_ETF',
+    type: 'etf',
+    price: 40000,
+    refreshedAt: REFRESHED_AT,
+    tags: [],
+    compositeSecurities: [
+      {
+        ticker: 'GOOG',
+        price: 15000,
+        percentage: 0.4,
+        refreshedAt: REFRESHED_AT,
+        tags: [
+          {
+            key: 'market_cap',
+            name: 'Market Capitalisation',
+            value: 'Large Cap',
+          },
+        ],
+      },
+      {
+        ticker: 'AAPL',
+        price: 20000,
+        percentage: 0.2,
+        refreshedAt: REFRESHED_AT,
+        tags: [
+          {
+            key: 'market_cap',
+            name: 'Market Capitalisation',
+            value: 'Large Cap',
+          },
+        ],
+      },
+    ],
+  },
+  MYSTERY_ETF: {
+    ticker: 'MYSTERY_ETF',
+    type: 'etf',
+    price: 25000,
+    refreshedAt: REFRESHED_AT,
+    tags: [],
+    compositeSecurities: [],
   },
 };

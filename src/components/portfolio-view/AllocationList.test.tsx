@@ -18,6 +18,7 @@ const ALLOCATIONS: FlattenedAllocation[] = [
       },
     ],
     components: [],
+    isUnknown: false,
   },
   {
     ticker: 'MSFT',
@@ -32,6 +33,7 @@ const ALLOCATIONS: FlattenedAllocation[] = [
       },
     ],
     components: [],
+    isUnknown: false,
   },
 ];
 
@@ -80,6 +82,38 @@ describe('AllocationList', () => {
       screen.getByText('Large Cap'),
     ).toBeInTheDocument();
     expect(screen.getByText('100.0%')).toBeInTheDocument();
+  });
+
+  it('shows dash for shares on unknown entries', () => {
+    const withUnknown: FlattenedAllocation[] = [
+      ...ALLOCATIONS,
+      {
+        ticker: 'Unknown (From PARTIAL_ETF)',
+        effectiveShares: 0,
+        totalValueCents: 80000,
+        percentage: 0.2,
+        tags: [],
+        components: [],
+        isUnknown: true,
+      },
+    ];
+    render(
+      <AllocationList
+        viewMode={{ kind: 'securities' }}
+        allocations={withUnknown}
+        tagBreakdown={[]}
+      />,
+    );
+
+    expect(
+      screen.getByText('Unknown (From PARTIAL_ETF)'),
+    ).toBeInTheDocument();
+    const unknownRow = screen
+      .getByText('Unknown (From PARTIAL_ETF)')
+      .closest('tr')!;
+    expect(unknownRow).toHaveTextContent('-');
+    expect(unknownRow).toHaveTextContent('$800.00');
+    expect(unknownRow).toHaveTextContent('20.0%');
   });
 
   it('formats dollar values correctly', () => {

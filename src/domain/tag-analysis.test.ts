@@ -13,6 +13,7 @@ function makeAllocation(
     percentage: 0,
     tags: [],
     components: [],
+    isUnknown: false,
     ...overrides,
   };
 }

@@ -9,6 +9,7 @@ const SAMPLE_ALLOCATIONS = [
     percentage: 0.5,
     tags: [],
     components: [],
+    isUnknown: false,
   },
   {
     ticker: 'MSFT',
@@ -17,6 +18,7 @@ const SAMPLE_ALLOCATIONS = [
     percentage: 0.3,
     tags: [],
     components: [],
+    isUnknown: false,
   },
   {
     ticker: 'AAPL',
@@ -25,6 +27,7 @@ const SAMPLE_ALLOCATIONS = [
     percentage: 0.2,
     tags: [],
     components: [],
+    isUnknown: false,
   },
 ];
 
