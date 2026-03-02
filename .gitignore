@@ -25,3 +25,8 @@ dist-ssr
 
 # Storybook
 storybook-static
+
+# Firebase
+functions/dist
+functions/node_modules
+.firebase
