@@ -17,3 +17,18 @@ export async function getSecurityDoc(
 
   return doc.data() as SecurityDoc;
 }
+
+export async function updateSecurityPrice(
+  ticker: string,
+  priceCents: number
+): Promise<void> {
+  const now = new Date().toISOString();
+  await getFirestore()
+    .collection(COLLECTION)
+    .doc(ticker.toUpperCase())
+    .update({
+      price: priceCents,
+      refreshedAt: now,
+      updatedAt: now,
+    });
+}

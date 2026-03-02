@@ -2,9 +2,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { SecurityDoc } from "../types.js";
 
 const mockGetSecurityDoc = vi.fn();
+const mockUpdateSecurityPrice = vi.fn();
+const mockFetchQuote = vi.fn();
 
 vi.mock("../firestore.js", () => ({
   getSecurityDoc: mockGetSecurityDoc,
+  updateSecurityPrice: mockUpdateSecurityPrice,
+}));
+
+vi.mock("../finnhub.js", () => ({
+  fetchQuote: mockFetchQuote,
 }));
 
 const { handler } = await import("../handler.js");
@@ -44,6 +51,11 @@ function createMockResponse(): Record<string, unknown> & {
   return res;
 }
 
+const recentDate = new Date().toISOString();
+const staleDate = new Date(
+  Date.now() - 8 * 24 * 60 * 60 * 1000
+).toISOString();
+
 const stockDoc: SecurityDoc = {
   ticker: "GOOG",
   type: "stock",
@@ -56,13 +68,14 @@ const stockDoc: SecurityDoc = {
     },
   ],
   compositeSecurities: [],
-  refreshedAt: "2026-03-01T12:00:00Z",
-  updatedAt: "2026-03-01T12:30:00Z",
+  refreshedAt: recentDate,
+  updatedAt: recentDate,
 };
 
 describe("handler", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    delete process.env.FINNHUB_API_KEY;
   });
 
   it("returns 200 with correct JSON and Cache-Control header", async () => {
@@ -83,7 +96,7 @@ describe("handler", () => {
       price: 17845,
       tags: stockDoc.tags,
       compositeSecurities: [],
-      refreshedAt: "2026-03-01T12:00:00Z",
+      refreshedAt: recentDate,
     });
     expect(res.body).not.toHaveProperty("updatedAt");
   });
@@ -165,4 +178,157 @@ describe("handler", () => {
     expect(mockGetSecurityDoc).toHaveBeenCalledWith("goog");
     expect(res.statusCode).toBe(200);
   });
+
+  it("does not call Finnhub when doc is fresh", async () => {
+    process.env.FINNHUB_API_KEY = "test-key";
+    mockGetSecurityDoc.mockResolvedValue(stockDoc);
+    const req = createMockRequest();
+    const res = createMockResponse();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await handler(req as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockFetchQuote).not.toHaveBeenCalled();
+    expect(mockUpdateSecurityPrice).not.toHaveBeenCalled();
+  });
+
+  it("refreshes price from Finnhub when doc is stale", async () => {
+    process.env.FINNHUB_API_KEY = "test-key";
+    const staleDoc: SecurityDoc = {
+      ...stockDoc,
+      refreshedAt: staleDate,
+      updatedAt: staleDate,
+    };
+    mockGetSecurityDoc.mockResolvedValue(staleDoc);
+    mockFetchQuote.mockResolvedValue(19000);
+    mockUpdateSecurityPrice.mockResolvedValue(undefined);
+    const req = createMockRequest();
+    const res = createMockResponse();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await handler(req as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockFetchQuote).toHaveBeenCalledWith(
+      "GOOG",
+      "test-key"
+    );
+    expect(mockUpdateSecurityPrice).toHaveBeenCalledWith(
+      "GOOG",
+      19000
+    );
+    const body = res.body as { price: number };
+    expect(body.price).toBe(19000);
+  });
+
+  it(
+    "returns stale data when Finnhub fails",
+    async () => {
+      process.env.FINNHUB_API_KEY = "test-key";
+      const staleDoc: SecurityDoc = {
+        ...stockDoc,
+        refreshedAt: staleDate,
+        updatedAt: staleDate,
+      };
+      mockGetSecurityDoc.mockResolvedValue(staleDoc);
+      mockFetchQuote.mockResolvedValue(null);
+      const req = createMockRequest();
+      const res = createMockResponse();
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await handler(req as any, res as any);
+
+      expect(res.statusCode).toBe(200);
+      expect(mockUpdateSecurityPrice).not.toHaveBeenCalled();
+      const body = res.body as { price: number };
+      expect(body.price).toBe(17845);
+    }
+  );
+
+  it(
+    "sets short cache for partial ETF",
+    async () => {
+      const partialEtfDoc: SecurityDoc = {
+        ticker: "VGS",
+        type: "etf",
+        price: 10000,
+        tags: [],
+        compositeSecurities: [
+          {
+            ticker: "AAPL",
+            tags: [],
+            price: 20000,
+            percentage: 0.3,
+            refreshedAt: recentDate,
+          },
+          {
+            ticker: "MSFT",
+            tags: [],
+            price: 30000,
+            percentage: 0.2,
+            refreshedAt: recentDate,
+          },
+        ],
+        refreshedAt: recentDate,
+        updatedAt: recentDate,
+      };
+      mockGetSecurityDoc.mockResolvedValue(partialEtfDoc);
+      const req = createMockRequest({
+        path: "/api/v1/securities/VGS",
+      });
+      const res = createMockResponse();
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await handler(req as any, res as any);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.headers["Cache-Control"]).toBe(
+        "public, max-age=60"
+      );
+    }
+  );
+
+  it(
+    "sets default cache for complete ETF",
+    async () => {
+      const completeEtfDoc: SecurityDoc = {
+        ticker: "VGS",
+        type: "etf",
+        price: 10000,
+        tags: [],
+        compositeSecurities: [
+          {
+            ticker: "AAPL",
+            tags: [],
+            price: 20000,
+            percentage: 0.6,
+            refreshedAt: recentDate,
+          },
+          {
+            ticker: "MSFT",
+            tags: [],
+            price: 30000,
+            percentage: 0.4,
+            refreshedAt: recentDate,
+          },
+        ],
+        refreshedAt: recentDate,
+        updatedAt: recentDate,
+      };
+      mockGetSecurityDoc.mockResolvedValue(completeEtfDoc);
+      const req = createMockRequest({
+        path: "/api/v1/securities/VGS",
+      });
+      const res = createMockResponse();
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await handler(req as any, res as any);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.headers["Cache-Control"]).toBe(
+        "public, max-age=604800"
+      );
+    }
+  );
 });

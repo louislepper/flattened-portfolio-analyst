@@ -1,11 +1,34 @@
 import type { Request } from "firebase-functions/v2/https";
 import type { Response } from "express";
-import { getSecurityDoc } from "./firestore.js";
+import { getSecurityDoc, updateSecurityPrice } from "./firestore.js";
 import { mapSecurityDocToResponse } from "./mapper.js";
+import { fetchQuote } from "./finnhub.js";
 
 const TICKER_PATTERN = /^[A-Z0-9._-]+$/;
-const CACHE_MAX_AGE = 604800; // 1 week in seconds
+const CACHE_MAX_AGE_DEFAULT = 604800; // 1 week in seconds
+const CACHE_MAX_AGE_PARTIAL_ETF = 60; // 1 minute in seconds
+const PARTIAL_ETF_THRESHOLD = 0.95;
+const STALENESS_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const PATH_PREFIX = "/api/v1/securities/";
+
+function isStale(refreshedAt: string): boolean {
+  const refreshedTime = new Date(refreshedAt).getTime();
+  return Date.now() - refreshedTime > STALENESS_MS;
+}
+
+function isPartialEtf(
+  type: string,
+  compositeSecurities: { percentage: number }[]
+): boolean {
+  if (type !== "etf") {
+    return false;
+  }
+  const totalPercentage = compositeSecurities.reduce(
+    (sum, s) => sum + s.percentage,
+    0
+  );
+  return totalPercentage <= PARTIAL_ETF_THRESHOLD;
+}
 
 export async function handler(
   req: Request,
@@ -43,11 +66,27 @@ export async function handler(
       return;
     }
 
+    if (isStale(doc.refreshedAt)) {
+      const apiKey = process.env.FINNHUB_API_KEY;
+      if (apiKey) {
+        const priceCents = await fetchQuote(
+          doc.ticker,
+          apiKey
+        );
+        if (priceCents !== null) {
+          doc.price = priceCents;
+          doc.refreshedAt = new Date().toISOString();
+          await updateSecurityPrice(doc.ticker, priceCents);
+        }
+      }
+    }
+
+    const maxAge = isPartialEtf(doc.type, doc.compositeSecurities)
+      ? CACHE_MAX_AGE_PARTIAL_ETF
+      : CACHE_MAX_AGE_DEFAULT;
+
     const response = mapSecurityDocToResponse(doc);
-    res.set(
-      "Cache-Control",
-      `public, max-age=${CACHE_MAX_AGE}`
-    );
+    res.set("Cache-Control", `public, max-age=${maxAge}`);
     res.status(200).json(response);
   } catch {
     res.status(500).json({
