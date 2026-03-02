@@ -10,6 +10,7 @@ const ALLOCATIONS: FlattenedAllocation[] = [
     effectiveShares: 10,
     totalValueCents: 150000,
     percentage: 0.6,
+    isUnknown: false,
     tags: [
       {
         key: 'market_cap',
