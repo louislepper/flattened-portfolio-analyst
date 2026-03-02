@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { flattenPortfolio, formatUnknownTicker } from './aggregation';
+import { flattenPortfolio } from './aggregation';
 import type { SecurityResponse } from '../api/types';
 import type { Holding } from './types';
 
