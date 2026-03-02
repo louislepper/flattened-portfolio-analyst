@@ -58,6 +58,11 @@ echo ""
 #   cloudresourcemanager.googleapis.com
 #   serviceusage.googleapis.com
 #   firebaserules.googleapis.com
+#   firebaseextensions.googleapis.com
+#   eventarc.googleapis.com
+#   pubsub.googleapis.com
+#   storage.googleapis.com
+#   cloudbilling.googleapis.com
 # )
 
 # gcloud services enable "${APIS[@]}"

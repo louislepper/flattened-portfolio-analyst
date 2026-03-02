@@ -32,10 +32,12 @@ echo "Granting IAM roles..."
 
 ROLES=(
   roles/firebasehosting.admin
-  roles/cloudfunctions.developer
+  roles/cloudfunctions.admin
   roles/run.admin
   roles/iam.serviceAccountUser
   roles/artifactregistry.writer
+  roles/serviceusage.serviceUsageAdmin
+  roles/firebaseextensions.admin
 )
 
 for ROLE in "${ROLES[@]}"; do
