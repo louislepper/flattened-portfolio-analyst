@@ -102,6 +102,19 @@ describe('AllocationList', () => {
     expect(screen.getByText('100.0%')).toBeInTheDocument();
   });
 
+  it('shows total portfolio value', () => {
+    render(
+      <AllocationList
+        viewMode={{ kind: 'securities' }}
+        allocations={ALLOCATIONS}
+        tagBreakdown={[]}
+      />,
+    );
+
+    const total = screen.getByTestId('total-value');
+    expect(total).toHaveTextContent('$4000.00');
+  });
+
   it('shows dash for shares on unknown entries', () => {
     const withUnknown: FlattenedAllocation[] = [
       ...ALLOCATIONS,

@@ -40,6 +40,14 @@ export function AllocationList({
     [allocations],
   );
 
+  const totalValueCents = useMemo(
+    () => allocations.reduce(
+      (sum, a) => sum + a.totalValueCents,
+      0,
+    ),
+    [allocations],
+  );
+
   const unknownPercentage = useMemo(
     () => allocations
       .filter((a) => a.isUnknown)
@@ -157,6 +165,16 @@ export function AllocationList({
           </TableBody>
         </Table>
       </TableContainer>
+
+      <Box sx={{ mt: 1 }}>
+        <Typography
+          variant="body2"
+          fontWeight="medium"
+          data-testid="total-value"
+        >
+          Total portfolio value: {formatDollars(totalValueCents)}
+        </Typography>
+      </Box>
 
       {unknownPercentage > 0 && (
         <Box sx={{ mt: 1 }}>
