@@ -47,6 +47,34 @@ export const Securities: Story = {
   },
 };
 
+export const WithEverythingElse: Story = {
+  args: {
+    viewMode: { kind: 'securities' },
+    allocations: [
+      ...SAMPLE_ALLOCATIONS,
+      {
+        ticker: 'TINY_A',
+        effectiveShares: 0.001,
+        totalValueCents: 5,
+        percentage: 0.00005,
+        tags: [],
+        components: [],
+        isUnknown: false,
+      },
+      {
+        ticker: 'TINY_B',
+        effectiveShares: 0.0001,
+        totalValueCents: 3,
+        percentage: 0.00003,
+        tags: [],
+        components: [],
+        isUnknown: false,
+      },
+    ],
+    tagBreakdown: [],
+  },
+};
+
 export const TagBreakdown: Story = {
   args: {
     viewMode: {

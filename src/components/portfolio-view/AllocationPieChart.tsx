@@ -1,9 +1,11 @@
+import { useMemo } from 'react';
 import type { PieLabelRenderProps } from 'recharts';
 import { PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 import Box from '@mui/material/Box';
 import type { FlattenedAllocation } from '../../domain/types';
 import type { TagBreakdownEntry } from '../../domain/types';
 import type { ViewMode } from '../../domain/types';
+import { filterSmallAllocations } from '../../domain/display-filter';
 import { formatPercentage } from '../../utils/format';
 
 const COLORS = [
@@ -18,6 +20,8 @@ const COLORS = [
   '#e91e63',
   '#3f51b5',
 ];
+
+const EVERYTHING_ELSE_COLOR = '#bdbdbd';
 
 interface AllocationPieChartProps {
   readonly viewMode: ViewMode;
@@ -35,20 +39,37 @@ function toChartData(
   viewMode: ViewMode,
   allocations: readonly FlattenedAllocation[],
   tagBreakdown: readonly TagBreakdownEntry[],
-): ChartEntry[] {
+): { entries: ChartEntry[]; hasEverythingElse: boolean } {
   if (viewMode.kind === 'tag') {
-    return tagBreakdown.map((entry) => ({
-      name: entry.tagValue,
-      value: entry.totalValueCents,
-      percentage: entry.percentage,
-    }));
+    return {
+      entries: tagBreakdown.map((entry) => ({
+        name: entry.tagValue,
+        value: entry.totalValueCents,
+        percentage: entry.percentage,
+      })),
+      hasEverythingElse: false,
+    };
   }
 
-  return allocations.map((a) => ({
+  const filtered = filterSmallAllocations(allocations);
+  const entries = filtered.visible.map((a) => ({
     name: a.ticker,
     value: a.totalValueCents,
     percentage: a.percentage,
   }));
+
+  if (filtered.hiddenCount > 0) {
+    entries.push({
+      name: 'Everything else',
+      value: filtered.hiddenValueCents,
+      percentage: filtered.hiddenPercentage,
+    });
+  }
+
+  return {
+    entries,
+    hasEverythingElse: filtered.hiddenCount > 0,
+  };
 }
 
 function renderLabel(props: PieLabelRenderProps): string {
@@ -63,7 +84,10 @@ export function AllocationPieChart({
   allocations,
   tagBreakdown,
 }: AllocationPieChartProps) {
-  const data = toChartData(viewMode, allocations, tagBreakdown);
+  const { entries: data, hasEverythingElse } = useMemo(
+    () => toChartData(viewMode, allocations, tagBreakdown),
+    [viewMode, allocations, tagBreakdown],
+  );
 
   if (data.length === 0) return null;
 
@@ -81,12 +105,19 @@ export function AllocationPieChart({
           outerRadius={140}
           label={renderLabel}
         >
-          {data.map((_, index) => (
-            <Cell
-              key={data[index].name}
-              fill={COLORS[index % COLORS.length]}
-            />
-          ))}
+          {data.map((entry, index) => {
+            const isEverythingElse =
+              hasEverythingElse && index === data.length - 1;
+            return (
+              <Cell
+                key={entry.name}
+                fill={isEverythingElse
+                  ? EVERYTHING_ELSE_COLOR
+                  : COLORS[index % COLORS.length]
+                }
+              />
+            );
+          })}
         </Pie>
         <Tooltip
           formatter={(

@@ -80,7 +80,9 @@ export function flattenPortfolio(
         const dollarValueInChild =
           etfTotalValueCents * composite.percentage;
         const childEffectiveShares =
-          dollarValueInChild / composite.price;
+          composite.price > 0
+            ? dollarValueInChild / composite.price
+            : 0;
         const entry = getOrCreate(
           composite.ticker,
           composite.price,

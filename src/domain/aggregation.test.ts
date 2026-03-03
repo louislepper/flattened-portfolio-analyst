@@ -581,4 +581,176 @@ describe('flattenPortfolio', () => {
       },
     );
   });
+
+  describe('edge cases: zero prices and NaN/Infinity', () => {
+    it('handles composite with zero price gracefully', () => {
+      const holdings: Holding[] = [
+        { ticker: 'ETF', quantity: 5 },
+      ];
+
+      const dataMap = new Map<string, SecurityResponse>([
+        ['ETF', makeEtf({
+          ticker: 'ETF',
+          price: 10000,
+          compositeSecurities: [
+            {
+              ticker: 'GOOG', tags: [], price: 0,
+              percentage: 0.5, refreshedAt: REFRESHED_AT,
+            },
+            {
+              ticker: 'MSFT', tags: [], price: 10000,
+              percentage: 0.5, refreshedAt: REFRESHED_AT,
+            },
+          ],
+        })],
+      ]);
+
+      const result = flattenPortfolio(holdings, dataMap);
+
+      const goog = result.find((r) => r.ticker === 'GOOG');
+      expect(goog).toBeDefined();
+      expect(goog!.effectiveShares).toBe(0);
+      expect(goog!.totalValueCents).toBeCloseTo(25000);
+      expect(Number.isFinite(goog!.percentage)).toBe(true);
+      expect(Number.isFinite(goog!.effectiveShares)).toBe(true);
+
+      const msft = result.find((r) => r.ticker === 'MSFT');
+      expect(msft).toBeDefined();
+      expect(msft!.effectiveShares).toBeCloseTo(2.5);
+    });
+
+    it('handles ETF with zero price', () => {
+      const holdings: Holding[] = [
+        { ticker: 'ETF', quantity: 5 },
+      ];
+
+      const dataMap = new Map<string, SecurityResponse>([
+        ['ETF', makeEtf({
+          ticker: 'ETF',
+          price: 0,
+          compositeSecurities: [
+            {
+              ticker: 'GOOG', tags: [], price: 10000,
+              percentage: 0.5, refreshedAt: REFRESHED_AT,
+            },
+          ],
+        })],
+      ]);
+
+      const result = flattenPortfolio(holdings, dataMap);
+      // ETF value = 5 * 0 = 0, so GOOG gets 0 value, 0 shares
+      // Total portfolio = 0, early return []
+      expect(result).toEqual([]);
+    });
+
+    it('handles direct stock with zero price', () => {
+      const holdings: Holding[] = [
+        { ticker: 'FREE', quantity: 100 },
+        { ticker: 'GOOG', quantity: 5 },
+      ];
+
+      const dataMap = new Map<string, SecurityResponse>([
+        ['FREE', makeStock({ ticker: 'FREE', price: 0 })],
+        ['GOOG', makeStock({ ticker: 'GOOG', price: 10000 })],
+      ]);
+
+      const result = flattenPortfolio(holdings, dataMap);
+
+      expect(result).toHaveLength(2);
+      const free = result.find((r) => r.ticker === 'FREE')!;
+      expect(free.effectiveShares).toBe(100);
+      expect(free.totalValueCents).toBe(0);
+      expect(free.percentage).toBe(0);
+      expect(Number.isFinite(free.percentage)).toBe(true);
+
+      const goog = result.find((r) => r.ticker === 'GOOG')!;
+      expect(goog.percentage).toBeCloseTo(1.0);
+    });
+
+    it(
+      'produces no NaN or Infinity in any allocation field',
+      () => {
+        const holdings: Holding[] = [
+          { ticker: 'ETF', quantity: 3 },
+          { ticker: 'ZERO_STOCK', quantity: 10 },
+        ];
+
+        const dataMap = new Map<string, SecurityResponse>([
+          ['ETF', makeEtf({
+            ticker: 'ETF',
+            price: 20000,
+            compositeSecurities: [
+              {
+                ticker: 'A', tags: [], price: 0,
+                percentage: 0.3, refreshedAt: REFRESHED_AT,
+              },
+              {
+                ticker: 'B', tags: [], price: 5000,
+                percentage: 0.7, refreshedAt: REFRESHED_AT,
+              },
+            ],
+          })],
+          ['ZERO_STOCK', makeStock({
+            ticker: 'ZERO_STOCK',
+            price: 0,
+          })],
+        ]);
+
+        const result = flattenPortfolio(holdings, dataMap);
+
+        for (const alloc of result) {
+          expect(Number.isFinite(alloc.effectiveShares))
+            .toBe(true);
+          expect(Number.isFinite(alloc.totalValueCents))
+            .toBe(true);
+          expect(Number.isFinite(alloc.percentage))
+            .toBe(true);
+          for (const comp of alloc.components) {
+            expect(Number.isFinite(comp.effectiveShares))
+              .toBe(true);
+            expect(Number.isFinite(comp.valueCents))
+              .toBe(true);
+          }
+        }
+      },
+    );
+
+    it('handles zero quantity holdings', () => {
+      const holdings: Holding[] = [
+        { ticker: 'GOOG', quantity: 0 },
+        { ticker: 'MSFT', quantity: 5 },
+      ];
+
+      const dataMap = new Map<string, SecurityResponse>([
+        ['GOOG', makeStock({ ticker: 'GOOG', price: 10000 })],
+        ['MSFT', makeStock({ ticker: 'MSFT', price: 20000 })],
+      ]);
+
+      const result = flattenPortfolio(holdings, dataMap);
+
+      const goog = result.find((r) => r.ticker === 'GOOG')!;
+      expect(goog.effectiveShares).toBe(0);
+      expect(goog.totalValueCents).toBe(0);
+      expect(goog.percentage).toBe(0);
+      expect(Number.isFinite(goog.percentage)).toBe(true);
+    });
+
+    it(
+      'handles all zero-price portfolio returning empty',
+      () => {
+        const holdings: Holding[] = [
+          { ticker: 'A', quantity: 10 },
+          { ticker: 'B', quantity: 5 },
+        ];
+
+        const dataMap = new Map<string, SecurityResponse>([
+          ['A', makeStock({ ticker: 'A', price: 0 })],
+          ['B', makeStock({ ticker: 'B', price: 0 })],
+        ]);
+
+        const result = flattenPortfolio(holdings, dataMap);
+        expect(result).toEqual([]);
+      },
+    );
+  });
 });
