@@ -22,6 +22,7 @@ const COLORS = [
 ];
 
 const EVERYTHING_ELSE_COLOR = '#bdbdbd';
+const MAX_PIE_SLICES = 19;
 
 interface AllocationPieChartProps {
   readonly viewMode: ViewMode;
@@ -52,24 +53,34 @@ function toChartData(
   }
 
   const filtered = filterSmallAllocations(allocations);
-  const entries = filtered.visible.map((a) => ({
+  const visible = filtered.visible.map((a) => ({
     name: a.ticker,
     value: a.totalValueCents,
     percentage: a.percentage,
   }));
 
-  if (filtered.hiddenCount > 0) {
+  let restValue = filtered.hiddenValueCents;
+  let restPercentage = filtered.hiddenPercentage;
+
+  const entries = visible.slice(0, MAX_PIE_SLICES);
+  for (const overflow of visible.slice(MAX_PIE_SLICES)) {
+    restValue += overflow.value;
+    restPercentage += overflow.percentage;
+  }
+
+  const hasEverythingElse =
+    filtered.hiddenCount > 0
+    || visible.length > MAX_PIE_SLICES;
+
+  if (hasEverythingElse) {
     entries.push({
       name: 'Everything else',
-      value: filtered.hiddenValueCents,
-      percentage: filtered.hiddenPercentage,
+      value: restValue,
+      percentage: restPercentage,
     });
   }
 
-  return {
-    entries,
-    hasEverythingElse: filtered.hiddenCount > 0,
-  };
+  return { entries, hasEverythingElse };
 }
 
 function renderLabel(props: PieLabelRenderProps): string {

@@ -52,4 +52,45 @@ describe('AllocationPieChart', () => {
       screen.getByText('MSFT'),
     ).toBeInTheDocument();
   });
+
+  it(
+    'limits to 19 slices plus everything else',
+    () => {
+      const manyAllocations: FlattenedAllocation[] =
+        Array.from({ length: 25 }, (_, i) => ({
+          ticker: `STOCK_${i}`,
+          effectiveShares: 100 - i,
+          totalValueCents: (100 - i) * 1000,
+          percentage: (100 - i) / 2150,
+          tags: [],
+          components: [],
+          isUnknown: false,
+        }));
+
+      render(
+        <AllocationPieChart
+          viewMode={{ kind: 'securities' }}
+          allocations={manyAllocations}
+          tagBreakdown={[]}
+        />,
+      );
+
+      // First 19 should be visible
+      for (let i = 0; i < 19; i++) {
+        expect(
+          screen.getByText(`STOCK_${i}`),
+        ).toBeInTheDocument();
+      }
+
+      // 20th and beyond should not be individual slices
+      expect(
+        screen.queryByText('STOCK_19'),
+      ).not.toBeInTheDocument();
+
+      // Should have an "Everything else" entry
+      expect(
+        screen.getByText('Everything else'),
+      ).toBeInTheDocument();
+    },
+  );
 });
