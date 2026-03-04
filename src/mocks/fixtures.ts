@@ -94,57 +94,18 @@ export const MOCK_SECURITIES: Record<string, SecurityResponse> = {
     compositeSecurities: [
       {
         ticker: 'GOOG',
-        price: 15000,
         percentage: 0.4,
         refreshedAt: REFRESHED_AT,
-        tags: [
-          {
-            key: 'market_cap',
-            name: 'Market Capitalisation',
-            value: 'Large Cap',
-          },
-          {
-            key: 'sector',
-            name: 'Sector',
-            value: 'Technology',
-          },
-        ],
       },
       {
         ticker: 'MSFT',
-        price: 40000,
         percentage: 0.35,
         refreshedAt: REFRESHED_AT,
-        tags: [
-          {
-            key: 'market_cap',
-            name: 'Market Capitalisation',
-            value: 'Large Cap',
-          },
-          {
-            key: 'sector',
-            name: 'Sector',
-            value: 'Technology',
-          },
-        ],
       },
       {
         ticker: 'AAPL',
-        price: 20000,
         percentage: 0.25,
         refreshedAt: REFRESHED_AT,
-        tags: [
-          {
-            key: 'market_cap',
-            name: 'Market Capitalisation',
-            value: 'Large Cap',
-          },
-          {
-            key: 'sector',
-            name: 'Sector',
-            value: 'Technology',
-          },
-        ],
       },
     ],
   },
@@ -157,39 +118,13 @@ export const MOCK_SECURITIES: Record<string, SecurityResponse> = {
     compositeSecurities: [
       {
         ticker: 'GOOG',
-        price: 15000,
         percentage: 0.3,
         refreshedAt: REFRESHED_AT,
-        tags: [
-          {
-            key: 'market_cap',
-            name: 'Market Capitalisation',
-            value: 'Large Cap',
-          },
-          {
-            key: 'sector',
-            name: 'Sector',
-            value: 'Technology',
-          },
-        ],
       },
       {
         ticker: 'JPM',
-        price: 18000,
         percentage: 0.7,
         refreshedAt: REFRESHED_AT,
-        tags: [
-          {
-            key: 'market_cap',
-            name: 'Market Capitalisation',
-            value: 'Large Cap',
-          },
-          {
-            key: 'sector',
-            name: 'Sector',
-            value: 'Finance',
-          },
-        ],
       },
     ],
   },
@@ -202,29 +137,13 @@ export const MOCK_SECURITIES: Record<string, SecurityResponse> = {
     compositeSecurities: [
       {
         ticker: 'GOOG',
-        price: 15000,
         percentage: 0.4,
         refreshedAt: REFRESHED_AT,
-        tags: [
-          {
-            key: 'market_cap',
-            name: 'Market Capitalisation',
-            value: 'Large Cap',
-          },
-        ],
       },
       {
         ticker: 'AAPL',
-        price: 20000,
         percentage: 0.2,
         refreshedAt: REFRESHED_AT,
-        tags: [
-          {
-            key: 'market_cap',
-            name: 'Market Capitalisation',
-            value: 'Large Cap',
-          },
-        ],
       },
     ],
   },

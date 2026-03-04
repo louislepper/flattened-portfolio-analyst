@@ -8,9 +8,11 @@ import type { TagBreakdownEntry } from '../../domain/types';
 const ALLOCATIONS: FlattenedAllocation[] = [
   {
     ticker: 'GOOG',
-    effectiveShares: 13.333,
+    shareCount: 10,
+    valueCentsFromComponents: 50000,
     totalValueCents: 200000,
     percentage: 0.5,
+    price: 15000,
     tags: [
       {
         key: 'market_cap',
@@ -18,25 +20,26 @@ const ALLOCATIONS: FlattenedAllocation[] = [
         value: 'Large Cap',
       },
     ],
+    tagsLoaded: true,
     components: [
       {
         fromTicker: 'GOOG',
         valueCents: 150000,
-        effectiveShares: 10,
       },
       {
         fromTicker: 'TECH_ETF',
         valueCents: 50000,
-        effectiveShares: 3.333,
       },
     ],
     isUnknown: false,
   },
   {
     ticker: 'MSFT',
-    effectiveShares: 5,
+    shareCount: 0,
+    valueCentsFromComponents: 200000,
     totalValueCents: 200000,
     percentage: 0.5,
+    price: 40000,
     tags: [
       {
         key: 'market_cap',
@@ -44,11 +47,11 @@ const ALLOCATIONS: FlattenedAllocation[] = [
         value: 'Large Cap',
       },
     ],
+    tagsLoaded: true,
     components: [
       {
         fromTicker: 'TECH_ETF',
         valueCents: 200000,
-        effectiveShares: 5,
       },
     ],
     isUnknown: false,
@@ -120,15 +123,17 @@ describe('AllocationList', () => {
       ...ALLOCATIONS,
       {
         ticker: 'Unknown (From PARTIAL_ETF)',
-        effectiveShares: 0,
+        shareCount: 0,
+        valueCentsFromComponents: 80000,
         totalValueCents: 80000,
         percentage: 0.2,
+        price: null,
         tags: [],
+        tagsLoaded: true,
         components: [
           {
             fromTicker: 'PARTIAL_ETF',
             valueCents: 80000,
-            effectiveShares: 0,
           },
         ],
         isUnknown: true,
@@ -153,6 +158,40 @@ describe('AllocationList', () => {
     expect(unknownRow).toHaveTextContent('20.0%');
   });
 
+  it('shows dash for shares when price is null', () => {
+    const withNullPrice: FlattenedAllocation[] = [
+      {
+        ticker: 'LOADING_STOCK',
+        shareCount: 0,
+        valueCentsFromComponents: 100000,
+        totalValueCents: 100000,
+        percentage: 1.0,
+        price: null,
+        tags: [],
+        tagsLoaded: false,
+        components: [
+          {
+            fromTicker: 'ETF',
+            valueCents: 100000,
+          },
+        ],
+        isUnknown: false,
+      },
+    ];
+    render(
+      <AllocationList
+        viewMode={{ kind: 'securities' }}
+        allocations={withNullPrice}
+        tagBreakdown={[]}
+      />,
+    );
+
+    const row = screen
+      .getByText('LOADING_STOCK')
+      .closest('tr')!;
+    expect(row).toHaveTextContent('-');
+  });
+
   it('formats dollar values correctly', () => {
     render(
       <AllocationList
@@ -168,33 +207,67 @@ describe('AllocationList', () => {
   });
 
   it(
+    'computes shares from totalValueCents / price',
+    () => {
+      render(
+        <AllocationList
+          viewMode={{ kind: 'securities' }}
+          allocations={ALLOCATIONS}
+          tagBreakdown={[]}
+        />,
+      );
+
+      // GOOG: 200000 / 15000 = 13.33
+      const googRow = screen
+        .getByText('GOOG')
+        .closest('tr')!;
+      expect(googRow).toHaveTextContent('13.33');
+
+      // MSFT: 200000 / 40000 = 5.00
+      const msftRow = screen
+        .getByText('MSFT')
+        .closest('tr')!;
+      expect(msftRow).toHaveTextContent('5.00');
+    },
+  );
+
+  it(
     'hides tiny allocations and shows everything else row',
     () => {
       const withTiny: FlattenedAllocation[] = [
         {
           ticker: 'GOOG',
-          effectiveShares: 100,
+          shareCount: 100,
+          valueCentsFromComponents: 0,
           totalValueCents: 1000000,
           percentage: 0.999,
+          price: 10000,
           tags: [],
+          tagsLoaded: true,
           components: [],
           isUnknown: false,
         },
         {
           ticker: 'TINY_A',
-          effectiveShares: 0.001,
+          shareCount: 0,
+          valueCentsFromComponents: 5,
           totalValueCents: 5,
           percentage: 0.00005,
+          price: null,
           tags: [],
+          tagsLoaded: false,
           components: [],
           isUnknown: false,
         },
         {
           ticker: 'TINY_B',
-          effectiveShares: 0.0005,
+          shareCount: 0,
+          valueCentsFromComponents: 3,
           totalValueCents: 3,
           percentage: 0.00003,
+          price: null,
           tags: [],
+          tagsLoaded: false,
           components: [],
           isUnknown: false,
         },
@@ -247,24 +320,29 @@ describe('AllocationList', () => {
     const withUnknown: FlattenedAllocation[] = [
       {
         ticker: 'GOOG',
-        effectiveShares: 10,
+        shareCount: 10,
+        valueCentsFromComponents: 0,
         totalValueCents: 100000,
         percentage: 0.6,
+        price: 10000,
         tags: [],
+        tagsLoaded: true,
         components: [],
         isUnknown: false,
       },
       {
         ticker: 'Unknown (From ETF_A)',
-        effectiveShares: 0,
+        shareCount: 0,
+        valueCentsFromComponents: 40000,
         totalValueCents: 40000,
         percentage: 0.4,
+        price: null,
         tags: [],
+        tagsLoaded: true,
         components: [
           {
             fromTicker: 'ETF_A',
             valueCents: 40000,
-            effectiveShares: 0,
           },
         ],
         isUnknown: true,

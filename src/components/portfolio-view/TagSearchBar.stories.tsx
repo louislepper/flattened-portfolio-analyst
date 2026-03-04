@@ -5,9 +5,11 @@ import { TagSearchBar } from './TagSearchBar';
 const ALLOCATIONS = [
   {
     ticker: 'GOOG',
-    effectiveShares: 10,
+    shareCount: 10,
+    valueCentsFromComponents: 0,
     totalValueCents: 150000,
     percentage: 0.6,
+    price: 15000,
     tags: [
       {
         key: 'market_cap',
@@ -20,6 +22,7 @@ const ALLOCATIONS = [
         value: 'Technology',
       },
     ],
+    tagsLoaded: true,
     components: [],
     isUnknown: false,
   },

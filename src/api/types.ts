@@ -6,8 +6,6 @@ export interface SecurityTag {
 
 export interface CompositeSecurity {
   readonly ticker: string;
-  readonly tags: readonly SecurityTag[];
-  readonly price: number;
   readonly percentage: number;
   readonly refreshedAt: string;
 }

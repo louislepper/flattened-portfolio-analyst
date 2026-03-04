@@ -130,9 +130,11 @@ export function AllocationList({
               >
                 <TableCell>{a.ticker}</TableCell>
                 <TableCell align="right">
-                  {a.isUnknown
+                  {a.isUnknown || a.price === null
                     ? '-'
-                    : formatShares(a.effectiveShares)}
+                    : formatShares(
+                      a.totalValueCents / a.price,
+                    )}
                 </TableCell>
                 <TableCell align="right">
                   {formatDollars(a.totalValueCents)}

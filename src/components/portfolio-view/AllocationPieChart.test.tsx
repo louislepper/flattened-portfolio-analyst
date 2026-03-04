@@ -6,19 +6,25 @@ import type { FlattenedAllocation } from '../../domain/types';
 const ALLOCATIONS: FlattenedAllocation[] = [
   {
     ticker: 'GOOG',
-    effectiveShares: 10,
+    shareCount: 10,
+    valueCentsFromComponents: 0,
     totalValueCents: 150000,
     percentage: 0.6,
+    price: 15000,
     tags: [],
+    tagsLoaded: true,
     components: [],
     isUnknown: false,
   },
   {
     ticker: 'MSFT',
-    effectiveShares: 5,
+    shareCount: 5,
+    valueCentsFromComponents: 0,
     totalValueCents: 100000,
     percentage: 0.4,
+    price: 20000,
     tags: [],
+    tagsLoaded: true,
     components: [],
     isUnknown: false,
   },
@@ -59,10 +65,13 @@ describe('AllocationPieChart', () => {
       const manyAllocations: FlattenedAllocation[] =
         Array.from({ length: 25 }, (_, i) => ({
           ticker: `STOCK_${i}`,
-          effectiveShares: 100 - i,
+          shareCount: 100 - i,
+          valueCentsFromComponents: 0,
           totalValueCents: (100 - i) * 1000,
           percentage: (100 - i) / 2150,
+          price: 1000,
           tags: [],
+          tagsLoaded: true,
           components: [],
           isUnknown: false,
         }));

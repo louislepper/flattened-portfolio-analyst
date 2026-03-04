@@ -29,27 +29,11 @@ const etfDoc: SecurityDoc = {
   compositeSecurities: [
     {
       ticker: "AAPL",
-      tags: [
-        {
-          key: "marketCap",
-          name: "Market Capitalisation",
-          value: "Mega Cap",
-        },
-      ],
-      price: 22000,
       percentage: 0.07,
       refreshedAt: "2026-03-01T10:00:00Z",
     },
     {
       ticker: "MSFT",
-      tags: [
-        {
-          key: "marketCap",
-          name: "Market Capitalisation",
-          value: "Mega Cap",
-        },
-      ],
-      price: 41000,
       percentage: 0.065,
       refreshedAt: "2026-03-01T10:00:00Z",
     },
@@ -80,9 +64,47 @@ describe("mapSecurityDocToResponse", () => {
       type: "etf",
       price: 52000,
       tags: etfDoc.tags,
-      compositeSecurities: etfDoc.compositeSecurities,
+      compositeSecurities: [
+        {
+          ticker: "AAPL",
+          percentage: 0.07,
+          refreshedAt: "2026-03-01T10:00:00Z",
+        },
+        {
+          ticker: "MSFT",
+          percentage: 0.065,
+          refreshedAt: "2026-03-01T10:00:00Z",
+        },
+      ],
       refreshedAt: "2026-03-01T12:00:00Z",
     });
+  });
+
+  it("strips legacy fields from composite securities", () => {
+    const docWithLegacyFields: SecurityDoc = {
+      ...etfDoc,
+      compositeSecurities: [
+        {
+          ticker: "AAPL",
+          percentage: 0.07,
+          refreshedAt: "2026-03-01T10:00:00Z",
+        },
+      ],
+    };
+
+    const result = mapSecurityDocToResponse(docWithLegacyFields);
+
+    expect(result.compositeSecurities[0]).toEqual({
+      ticker: "AAPL",
+      percentage: 0.07,
+      refreshedAt: "2026-03-01T10:00:00Z",
+    });
+    expect(
+      result.compositeSecurities[0],
+    ).not.toHaveProperty("tags");
+    expect(
+      result.compositeSecurities[0],
+    ).not.toHaveProperty("price");
   });
 
   it("strips updatedAt from the response", () => {
