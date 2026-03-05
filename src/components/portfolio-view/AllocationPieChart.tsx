@@ -42,14 +42,29 @@ function toChartData(
   tagBreakdown: readonly TagBreakdownEntry[],
 ): { entries: ChartEntry[]; hasEverythingElse: boolean } {
   if (viewMode.kind === 'tag') {
-    return {
-      entries: tagBreakdown.map((entry) => ({
-        name: entry.tagValue,
-        value: entry.totalValueCents,
-        percentage: entry.percentage,
-      })),
-      hasEverythingElse: false,
-    };
+    const visible = tagBreakdown.slice(0, MAX_PIE_SLICES);
+    const overflow = tagBreakdown.slice(MAX_PIE_SLICES);
+    const hasEverythingElse = overflow.length > 0;
+
+    const entries = visible.map((entry) => ({
+      name: entry.tagValue,
+      value: entry.totalValueCents,
+      percentage: entry.percentage,
+    }));
+
+    if (hasEverythingElse) {
+      entries.push({
+        name: 'Everything else',
+        value: overflow.reduce(
+          (s, e) => s + e.totalValueCents, 0,
+        ),
+        percentage: overflow.reduce(
+          (s, e) => s + e.percentage, 0,
+        ),
+      });
+    }
+
+    return { entries, hasEverythingElse };
   }
 
   const filtered = filterSmallAllocations(allocations);

@@ -14,6 +14,7 @@ import {
 } from './portfolioContextValue';
 
 const COMPOSITE_BATCH_SIZE = 20;
+const VALID_TICKER_PATTERN = /^[A-Z0-9._-]+$/;
 
 type PortfolioAction =
   | { type: 'ADD_HOLDING'; holding: Holding }
@@ -215,7 +216,9 @@ export function PortfolioProvider({
     if (compositeTickers.size === 0) return;
 
     let cancelled = false;
-    const tickers = Array.from(compositeTickers);
+    const tickers = Array.from(compositeTickers).filter(
+      (t) => VALID_TICKER_PATTERN.test(t.toUpperCase()),
+    );
 
     (async () => {
       for (

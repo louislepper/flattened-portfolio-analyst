@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { AllocationPieChart } from './AllocationPieChart';
 import type { FlattenedAllocation } from '../../domain/types';
+import type { TagBreakdownEntry } from '../../domain/types';
 
 const ALLOCATIONS: FlattenedAllocation[] = [
   {
@@ -97,6 +98,44 @@ describe('AllocationPieChart', () => {
       ).not.toBeInTheDocument();
 
       // Should have an "Everything else" entry
+      expect(
+        screen.getByText('Everything else'),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it(
+    'limits tag view to 19 slices plus everything else',
+    () => {
+      const manyTags: TagBreakdownEntry[] =
+        Array.from({ length: 25 }, (_, i) => ({
+          tagValue: `Tag_${i}`,
+          totalValueCents: (25 - i) * 1000,
+          percentage: (25 - i) / 325,
+        }));
+
+      render(
+        <AllocationPieChart
+          viewMode={{
+            kind: 'tag',
+            tagKey: 'sector',
+            tagName: 'Sector',
+          }}
+          allocations={[]}
+          tagBreakdown={manyTags}
+        />,
+      );
+
+      for (let i = 0; i < 19; i++) {
+        expect(
+          screen.getByText(`Tag_${i}`),
+        ).toBeInTheDocument();
+      }
+
+      expect(
+        screen.queryByText('Tag_19'),
+      ).not.toBeInTheDocument();
+
       expect(
         screen.getByText('Everything else'),
       ).toBeInTheDocument();
