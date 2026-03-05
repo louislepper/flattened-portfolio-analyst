@@ -5,9 +5,11 @@ import type { FlattenedAllocation } from '../../domain/types';
 const SAMPLE_ALLOCATIONS: FlattenedAllocation[] = [
   {
     ticker: 'GOOG',
-    effectiveShares: 13.333,
+    shareCount: 10,
+    valueCentsFromComponents: 50000,
     totalValueCents: 200000,
     percentage: 0.5,
+    price: 15000,
     tags: [
       {
         key: 'market_cap',
@@ -15,25 +17,26 @@ const SAMPLE_ALLOCATIONS: FlattenedAllocation[] = [
         value: 'Large Cap',
       },
     ],
+    tagsLoaded: true,
     components: [
       {
         fromTicker: 'GOOG',
         valueCents: 150000,
-        effectiveShares: 10,
       },
       {
         fromTicker: 'TECH_ETF',
         valueCents: 50000,
-        effectiveShares: 3.333,
       },
     ],
     isUnknown: false,
   },
   {
     ticker: 'MSFT',
-    effectiveShares: 5,
+    shareCount: 0,
+    valueCentsFromComponents: 200000,
     totalValueCents: 200000,
     percentage: 0.5,
+    price: 40000,
     tags: [
       {
         key: 'market_cap',
@@ -41,11 +44,11 @@ const SAMPLE_ALLOCATIONS: FlattenedAllocation[] = [
         value: 'Large Cap',
       },
     ],
+    tagsLoaded: true,
     components: [
       {
         fromTicker: 'TECH_ETF',
         valueCents: 200000,
-        effectiveShares: 5,
       },
     ],
     isUnknown: false,
@@ -82,15 +85,17 @@ export const WithUnknownEntries: Story = {
       },
       {
         ticker: 'Unknown (From PARTIAL_ETF)',
-        effectiveShares: 0,
+        shareCount: 0,
+        valueCentsFromComponents: 80000,
         totalValueCents: 80000,
         percentage: 0.3,
+        price: null,
         tags: [],
+        tagsLoaded: true,
         components: [
           {
             fromTicker: 'PARTIAL_ETF',
             valueCents: 80000,
-            effectiveShares: 0,
           },
         ],
         isUnknown: true,
@@ -110,28 +115,37 @@ export const WithTinyAllocations: Story = {
       })),
       {
         ticker: 'TINY_A',
-        effectiveShares: 0.001,
+        shareCount: 0,
+        valueCentsFromComponents: 5,
         totalValueCents: 5,
         percentage: 0.00005,
+        price: null,
         tags: [],
+        tagsLoaded: true,
         components: [],
         isUnknown: false,
       },
       {
         ticker: 'TINY_B',
-        effectiveShares: 0.0001,
+        shareCount: 0,
+        valueCentsFromComponents: 1,
         totalValueCents: 1,
         percentage: 0.00005,
+        price: null,
         tags: [],
+        tagsLoaded: true,
         components: [],
         isUnknown: false,
       },
       {
         ticker: 'TINY_C',
-        effectiveShares: 0.00005,
+        shareCount: 0,
+        valueCentsFromComponents: 1,
         totalValueCents: 1,
         percentage: 0.00002,
+        price: null,
         tags: [],
+        tagsLoaded: true,
         components: [],
         isUnknown: false,
       },

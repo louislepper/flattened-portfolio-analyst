@@ -8,7 +8,11 @@ export function mapSecurityDocToResponse(
     type: doc.type,
     price: doc.price,
     tags: doc.tags,
-    compositeSecurities: doc.compositeSecurities,
+    compositeSecurities: doc.compositeSecurities.map(
+      ({ ticker, percentage, refreshedAt }) => ({
+        ticker, percentage, refreshedAt,
+      })
+    ),
     refreshedAt: doc.refreshedAt,
   };
 }

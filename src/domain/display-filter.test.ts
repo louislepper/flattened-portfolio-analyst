@@ -6,10 +6,13 @@ function makeAllocation(
   overrides: Partial<FlattenedAllocation> & { ticker: string },
 ): FlattenedAllocation {
   return {
-    effectiveShares: 0,
+    shareCount: 0,
+    valueCentsFromComponents: 0,
     totalValueCents: 0,
     percentage: 0,
+    price: null,
     tags: [],
+    tagsLoaded: true,
     components: [],
     isUnknown: false,
     ...overrides,

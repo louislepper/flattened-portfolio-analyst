@@ -9,6 +9,10 @@ import type {
 export interface PortfolioState {
   readonly holdings: readonly Holding[];
   readonly securityData: ReadonlyMap<string, SecurityResponse>;
+  readonly compositeSecurityData: ReadonlyMap<
+    string,
+    SecurityResponse
+  >;
   readonly phase: PortfolioPhase;
   readonly errorMessage: string | null;
   readonly failedTickers: readonly string[];

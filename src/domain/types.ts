@@ -8,15 +8,17 @@ export interface Holding {
 export interface AllocationComponent {
   readonly fromTicker: string;
   readonly valueCents: number;
-  readonly effectiveShares: number;
 }
 
 export interface FlattenedAllocation {
   readonly ticker: string;
-  readonly effectiveShares: number;
+  readonly shareCount: number;
+  readonly valueCentsFromComponents: number;
   readonly totalValueCents: number;
   readonly percentage: number;
+  readonly price: number | null;
   readonly tags: readonly SecurityTag[];
+  readonly tagsLoaded: boolean;
   readonly components: readonly AllocationComponent[];
   readonly isUnknown: boolean;
 }

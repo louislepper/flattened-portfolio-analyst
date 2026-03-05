@@ -9,9 +9,12 @@ function makeAllocation(
   },
 ): FlattenedAllocation {
   return {
-    effectiveShares: 0,
+    shareCount: 0,
+    valueCentsFromComponents: 0,
     percentage: 0,
+    price: null,
     tags: [],
+    tagsLoaded: true,
     components: [],
     isUnknown: false,
     ...overrides,
@@ -153,4 +156,78 @@ describe('computeTagBreakdown', () => {
     expect(result[0].tagValue).toBe('Untagged');
     expect(result[0].percentage).toBeCloseTo(1.0);
   });
+
+  it(
+    'puts loading allocations in "Unknown - loading" bucket',
+    () => {
+      const allocations: FlattenedAllocation[] = [
+        makeAllocation({
+          ticker: 'GOOG',
+          totalValueCents: 50000,
+          tags: [
+            {
+              key: 'market_cap',
+              name: 'Market Capitalisation',
+              value: 'Large Cap',
+            },
+          ],
+          tagsLoaded: true,
+        }),
+        makeAllocation({
+          ticker: 'MSFT',
+          totalValueCents: 30000,
+          tags: [],
+          tagsLoaded: false,
+        }),
+      ];
+
+      const result = computeTagBreakdown(
+        allocations,
+        'market_cap',
+      );
+
+      expect(result).toHaveLength(2);
+      const loading = result.find(
+        (r) => r.tagValue === 'Unknown - loading',
+      )!;
+      expect(loading.totalValueCents).toBe(30000);
+      expect(loading.percentage)
+        .toBeCloseTo(30000 / 80000);
+    },
+  );
+
+  it(
+    'distinguishes loading from genuinely untagged',
+    () => {
+      const allocations: FlattenedAllocation[] = [
+        makeAllocation({
+          ticker: 'LOADING',
+          totalValueCents: 20000,
+          tags: [],
+          tagsLoaded: false,
+        }),
+        makeAllocation({
+          ticker: 'UNTAGGED',
+          totalValueCents: 30000,
+          tags: [],
+          tagsLoaded: true,
+        }),
+      ];
+
+      const result = computeTagBreakdown(
+        allocations,
+        'market_cap',
+      );
+
+      expect(result).toHaveLength(2);
+      const loading = result.find(
+        (r) => r.tagValue === 'Unknown - loading',
+      )!;
+      expect(loading.totalValueCents).toBe(20000);
+      const untagged = result.find(
+        (r) => r.tagValue === 'Untagged',
+      )!;
+      expect(untagged.totalValueCents).toBe(30000);
+    },
+  );
 });

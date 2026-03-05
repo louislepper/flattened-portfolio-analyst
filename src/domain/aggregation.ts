@@ -12,10 +12,11 @@ export function formatUnknownTicker(etfTicker: string): string {
 }
 
 interface MutableEntry {
-  shares: number;
-  priceCents: number;
-  totalValueCents: number;
+  shareCount: number;
+  valueCentsFromComponents: number;
+  price: number | null;
   tags: readonly SecurityTag[];
+  tagsLoaded: boolean;
   components: AllocationComponent[];
   isUnknown: boolean;
 }
@@ -23,22 +24,34 @@ interface MutableEntry {
 export function flattenPortfolio(
   holdings: readonly Holding[],
   securityDataMap: ReadonlyMap<string, SecurityResponse>,
+  compositeDataMap?: ReadonlyMap<string, SecurityResponse>,
 ): FlattenedAllocation[] {
   const entries = new Map<string, MutableEntry>();
 
   const getOrCreate = (
     ticker: string,
-    priceCents: number,
+    price: number | null,
     tags: readonly SecurityTag[],
+    tagsLoaded: boolean,
     isUnknown: boolean,
   ): MutableEntry => {
     const existing = entries.get(ticker);
-    if (existing) return existing;
+    if (existing) {
+      if (price !== null && existing.price === null) {
+        existing.price = price;
+      }
+      if (tagsLoaded && !existing.tagsLoaded) {
+        existing.tags = tags;
+        existing.tagsLoaded = true;
+      }
+      return existing;
+    }
     const entry: MutableEntry = {
-      shares: 0,
-      priceCents,
-      totalValueCents: 0,
+      shareCount: 0,
+      valueCentsFromComponents: 0,
+      price,
       tags,
+      tagsLoaded,
       components: [],
       isUnknown,
     };
@@ -58,16 +71,15 @@ export function flattenPortfolio(
         holding.ticker,
         security.price,
         security.tags,
+        true,
         false,
       );
-      entry.shares += holding.quantity;
-      entry.totalValueCents += valueCents;
+      entry.shareCount += holding.quantity;
       entry.components = [
         ...entry.components,
         {
           fromTicker: holding.ticker,
           valueCents,
-          effectiveShares: holding.quantity,
         },
       ];
     } else {
@@ -79,24 +91,28 @@ export function flattenPortfolio(
         knownPercentage += composite.percentage;
         const dollarValueInChild =
           etfTotalValueCents * composite.percentage;
-        const childEffectiveShares =
-          composite.price > 0
-            ? dollarValueInChild / composite.price
-            : 0;
+
+        const compositeData =
+          compositeDataMap?.get(composite.ticker)
+          ?? securityDataMap.get(composite.ticker);
+
+        const childPrice = compositeData?.price ?? null;
+        const childTags = compositeData?.tags ?? [];
+        const childTagsLoaded = compositeData !== undefined;
+
         const entry = getOrCreate(
           composite.ticker,
-          composite.price,
-          composite.tags,
+          childPrice,
+          childTags,
+          childTagsLoaded,
           false,
         );
-        entry.shares += childEffectiveShares;
-        entry.totalValueCents += dollarValueInChild;
+        entry.valueCentsFromComponents += dollarValueInChild;
         entry.components = [
           ...entry.components,
           {
             fromTicker: holding.ticker,
             valueCents: dollarValueInChild,
-            effectiveShares: childEffectiveShares,
           },
         ];
       }
@@ -109,17 +125,17 @@ export function flattenPortfolio(
           formatUnknownTicker(holding.ticker);
         const entry = getOrCreate(
           unknownTicker,
-          0,
+          null,
           [],
           true,
+          true,
         );
-        entry.totalValueCents += unknownValueCents;
+        entry.valueCentsFromComponents += unknownValueCents;
         entry.components = [
           ...entry.components,
           {
             fromTicker: holding.ticker,
             valueCents: unknownValueCents,
-            effectiveShares: 0,
           },
         ];
       }
@@ -128,21 +144,36 @@ export function flattenPortfolio(
 
   const totalPortfolioValueCents = Array.from(
     entries.values(),
-  ).reduce((sum, entry) => sum + entry.totalValueCents, 0);
+  ).reduce((sum, entry) => {
+    const directValue =
+      entry.shareCount * (entry.price ?? 0);
+    return sum + entry.valueCentsFromComponents + directValue;
+  }, 0);
 
   if (totalPortfolioValueCents === 0) return [];
 
   const allocations: FlattenedAllocation[] = Array.from(
     entries.entries(),
-  ).map(([ticker, entry]) => ({
-    ticker,
-    effectiveShares: entry.shares,
-    totalValueCents: entry.totalValueCents,
-    percentage: entry.totalValueCents / totalPortfolioValueCents,
-    tags: entry.tags,
-    components: entry.components,
-    isUnknown: entry.isUnknown,
-  }));
+  ).map(([ticker, entry]) => {
+    const totalValueCents =
+      entry.valueCentsFromComponents
+      + entry.shareCount * (entry.price ?? 0);
+    return {
+      ticker,
+      shareCount: entry.shareCount,
+      valueCentsFromComponents: entry.valueCentsFromComponents,
+      totalValueCents,
+      percentage:
+        totalValueCents / totalPortfolioValueCents,
+      price: entry.price,
+      tags: entry.tags,
+      tagsLoaded: entry.tagsLoaded,
+      components: entry.components,
+      isUnknown: entry.isUnknown,
+    };
+  });
 
-  return allocations.sort((a, b) => b.percentage - a.percentage);
+  return allocations.sort(
+    (a, b) => b.percentage - a.percentage,
+  );
 }

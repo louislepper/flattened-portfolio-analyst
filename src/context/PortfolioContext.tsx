@@ -1,15 +1,19 @@
 import {
   useReducer,
   useCallback,
+  useEffect,
   type ReactNode,
 } from 'react';
 import type { SecurityResponse } from '../api/types';
 import type { Holding, ViewMode } from '../domain/types';
+import { fetchSecurity } from '../api/client';
 import { fetchSecurities } from '../api/client';
 import {
   PortfolioContext,
   type PortfolioState,
 } from './portfolioContextValue';
+
+const COMPOSITE_BATCH_SIZE = 20;
 
 type PortfolioAction =
   | { type: 'ADD_HOLDING'; holding: Holding }
@@ -23,12 +27,17 @@ type PortfolioAction =
     failedTickers: readonly string[];
   }
   | { type: 'FETCH_ERROR'; message: string }
+  | {
+    type: 'COMPOSITE_BATCH_SUCCESS';
+    batch: ReadonlyMap<string, SecurityResponse>;
+  }
   | { type: 'SET_VIEW_MODE'; viewMode: ViewMode }
   | { type: 'RESET' };
 
 const INITIAL_STATE: PortfolioState = {
   holdings: [],
   securityData: new Map(),
+  compositeSecurityData: new Map(),
   phase: 'input',
   errorMessage: null,
   failedTickers: [],
@@ -100,6 +109,7 @@ function reducer(
         ...state,
         phase: 'results',
         securityData: action.data,
+        compositeSecurityData: new Map(),
         failedTickers: action.failedTickers,
       };
     case 'FETCH_ERROR':
@@ -108,6 +118,16 @@ function reducer(
         phase: 'error',
         errorMessage: action.message,
       };
+    case 'COMPOSITE_BATCH_SUCCESS': {
+      const merged = new Map(state.compositeSecurityData);
+      for (const [ticker, data] of action.batch) {
+        merged.set(ticker, data);
+      }
+      return {
+        ...state,
+        compositeSecurityData: merged,
+      };
+    }
     case 'SET_VIEW_MODE':
       return { ...state, viewMode: action.viewMode };
     case 'RESET':
@@ -178,6 +198,66 @@ export function PortfolioProvider({
       });
     }
   }, [state.holdings]);
+
+  useEffect(() => {
+    if (state.phase !== 'results') return;
+
+    const compositeTickers = new Set<string>();
+    for (const security of state.securityData.values()) {
+      if (security.type !== 'etf') continue;
+      for (const composite of security.compositeSecurities) {
+        if (!state.securityData.has(composite.ticker)) {
+          compositeTickers.add(composite.ticker);
+        }
+      }
+    }
+
+    if (compositeTickers.size === 0) return;
+
+    let cancelled = false;
+    const tickers = Array.from(compositeTickers);
+
+    (async () => {
+      for (
+        let i = 0;
+        i < tickers.length;
+        i += COMPOSITE_BATCH_SIZE
+      ) {
+        if (cancelled) return;
+        const batch = tickers.slice(
+          i,
+          i + COMPOSITE_BATCH_SIZE,
+        );
+        const results = await Promise.allSettled(
+          batch.map(async (ticker) => ({
+            ticker,
+            data: await fetchSecurity(ticker),
+          })),
+        );
+
+        if (cancelled) return;
+
+        const batchMap = new Map<string, SecurityResponse>();
+        for (const result of results) {
+          if (result.status === 'fulfilled') {
+            batchMap.set(
+              result.value.ticker,
+              result.value.data,
+            );
+          }
+        }
+
+        if (batchMap.size > 0) {
+          dispatch({
+            type: 'COMPOSITE_BATCH_SUCCESS',
+            batch: batchMap,
+          });
+        }
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [state.phase, state.securityData]);
 
   const setViewMode = useCallback((viewMode: ViewMode) => {
     dispatch({ type: 'SET_VIEW_MODE', viewMode });

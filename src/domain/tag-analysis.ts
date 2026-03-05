@@ -2,6 +2,7 @@ import type { FlattenedAllocation } from './types';
 import type { TagBreakdownEntry } from './types';
 
 const UNTAGGED = 'Untagged';
+const UNKNOWN_LOADING = 'Unknown - loading';
 
 export function computeTagBreakdown(
   allocations: readonly FlattenedAllocation[],
@@ -11,7 +12,14 @@ export function computeTagBreakdown(
 
   for (const allocation of allocations) {
     const tag = allocation.tags.find((t) => t.key === tagKey);
-    const tagValue = tag?.value ?? UNTAGGED;
+    let tagValue: string;
+    if (tag) {
+      tagValue = tag.value;
+    } else if (!allocation.tagsLoaded) {
+      tagValue = UNKNOWN_LOADING;
+    } else {
+      tagValue = UNTAGGED;
+    }
     const current = groups.get(tagValue) ?? 0;
     groups.set(tagValue, current + allocation.totalValueCents);
   }

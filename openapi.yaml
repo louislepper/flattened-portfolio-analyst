@@ -71,8 +71,6 @@ components:
       type: object
       required:
         - ticker
-        - tags
-        - price
         - percentage
         - refreshedAt
       properties:
@@ -80,21 +78,6 @@ components:
           type: string
           description: Ticker of the underlying security
           example: GOOG
-        tags:
-          type: array
-          items:
-            $ref: "#/components/schemas/SecurityTag"
-        price:
-          type: number
-          description: Current price in cents
-          example: 15000
-        refreshedAt:
-          type: string
-          format: date-time
-          description: >
-            Timestamp when the price of this composite security
-            was last refreshed
-          example: "2026-03-01T12:00:00Z"
         percentage:
           type: number
           format: double
@@ -104,6 +87,13 @@ components:
             Fraction of the parent security's value allocated to
             this underlying holding (0 to 1)
           example: 0.2
+        refreshedAt:
+          type: string
+          format: date-time
+          description: >
+            Timestamp when this composite security entry
+            was last updated
+          example: "2026-03-01T12:00:00Z"
 
     SecurityResponse:
       type: object

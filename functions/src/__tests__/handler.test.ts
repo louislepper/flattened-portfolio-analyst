@@ -257,15 +257,11 @@ describe("handler", () => {
         compositeSecurities: [
           {
             ticker: "AAPL",
-            tags: [],
-            price: 20000,
             percentage: 0.3,
             refreshedAt: recentDate,
           },
           {
             ticker: "MSFT",
-            tags: [],
-            price: 30000,
             percentage: 0.2,
             refreshedAt: recentDate,
           },
@@ -300,15 +296,11 @@ describe("handler", () => {
         compositeSecurities: [
           {
             ticker: "AAPL",
-            tags: [],
-            price: 20000,
             percentage: 0.6,
             refreshedAt: recentDate,
           },
           {
             ticker: "MSFT",
-            tags: [],
-            price: 30000,
             percentage: 0.4,
             refreshedAt: recentDate,
           },

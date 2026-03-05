@@ -7,7 +7,15 @@ export function useFlattenedAllocations(): FlattenedAllocation[] {
   const { state } = usePortfolio();
 
   return useMemo(
-    () => flattenPortfolio(state.holdings, state.securityData),
-    [state.holdings, state.securityData],
+    () => flattenPortfolio(
+      state.holdings,
+      state.securityData,
+      state.compositeSecurityData,
+    ),
+    [
+      state.holdings,
+      state.securityData,
+      state.compositeSecurityData,
+    ],
   );
 }

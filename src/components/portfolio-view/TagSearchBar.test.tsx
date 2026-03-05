@@ -7,9 +7,11 @@ import type { FlattenedAllocation } from '../../domain/types';
 const ALLOCATIONS: FlattenedAllocation[] = [
   {
     ticker: 'GOOG',
-    effectiveShares: 10,
+    shareCount: 10,
+    valueCentsFromComponents: 0,
     totalValueCents: 150000,
     percentage: 0.6,
+    price: 15000,
     isUnknown: false,
     tags: [
       {
@@ -23,6 +25,7 @@ const ALLOCATIONS: FlattenedAllocation[] = [
         value: 'Technology',
       },
     ],
+    tagsLoaded: true,
     components: [],
   },
 ];

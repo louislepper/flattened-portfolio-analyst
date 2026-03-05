@@ -45,11 +45,11 @@ describe('flattenPortfolio', () => {
         price: 10000,
         compositeSecurities: [
           {
-            ticker: 'GOOG', tags: [], price: 10000,
+            ticker: 'GOOG',
             percentage: 0.2, refreshedAt: REFRESHED_AT,
           },
           {
-            ticker: 'MSFT', tags: [], price: 10000,
+            ticker: 'MSFT',
             percentage: 0.8, refreshedAt: REFRESHED_AT,
           },
         ],
@@ -61,15 +61,21 @@ describe('flattenPortfolio', () => {
     expect(result).toHaveLength(2);
 
     const goog = result.find((r) => r.ticker === 'GOOG')!;
-    expect(goog.effectiveShares).toBeCloseTo(11);
+    expect(goog.shareCount).toBe(10);
+    expect(goog.valueCentsFromComponents).toBeCloseTo(10000);
     expect(goog.totalValueCents).toBeCloseTo(110000);
     expect(goog.percentage).toBeCloseTo(0.733, 2);
+    expect(goog.price).toBe(10000);
+    expect(goog.tagsLoaded).toBe(true);
     expect(goog.isUnknown).toBe(false);
 
     const msft = result.find((r) => r.ticker === 'MSFT')!;
-    expect(msft.effectiveShares).toBeCloseTo(4);
+    expect(msft.shareCount).toBe(0);
+    expect(msft.valueCentsFromComponents).toBeCloseTo(40000);
     expect(msft.totalValueCents).toBeCloseTo(40000);
     expect(msft.percentage).toBeCloseTo(0.267, 2);
+    expect(msft.price).toBe(null);
+    expect(msft.tagsLoaded).toBe(false);
     expect(msft.isUnknown).toBe(false);
 
     expect(result[0].ticker).toBe('GOOG');
@@ -88,11 +94,11 @@ describe('flattenPortfolio', () => {
         price: 50000,
         compositeSecurities: [
           {
-            ticker: 'GOOG', tags: [], price: 15000,
+            ticker: 'GOOG',
             percentage: 0.2, refreshedAt: REFRESHED_AT,
           },
           {
-            ticker: 'MSFT', tags: [], price: 40000,
+            ticker: 'MSFT',
             percentage: 0.8, refreshedAt: REFRESHED_AT,
           },
         ],
@@ -104,12 +110,14 @@ describe('flattenPortfolio', () => {
     expect(result).toHaveLength(2);
 
     const goog = result.find((r) => r.ticker === 'GOOG')!;
-    expect(goog.effectiveShares).toBeCloseTo(13.333, 2);
+    expect(goog.shareCount).toBe(10);
+    expect(goog.valueCentsFromComponents).toBeCloseTo(50000);
     expect(goog.totalValueCents).toBeCloseTo(200000);
     expect(goog.percentage).toBeCloseTo(0.5);
 
     const msft = result.find((r) => r.ticker === 'MSFT')!;
-    expect(msft.effectiveShares).toBeCloseTo(5.0);
+    expect(msft.shareCount).toBe(0);
+    expect(msft.valueCentsFromComponents).toBeCloseTo(200000);
     expect(msft.totalValueCents).toBeCloseTo(200000);
     expect(msft.percentage).toBeCloseTo(0.5);
   });
@@ -126,11 +134,11 @@ describe('flattenPortfolio', () => {
         price: 30000,
         compositeSecurities: [
           {
-            ticker: 'GOOG', tags: [], price: 10000,
+            ticker: 'GOOG',
             percentage: 0.5, refreshedAt: REFRESHED_AT,
           },
           {
-            ticker: 'MSFT', tags: [], price: 20000,
+            ticker: 'MSFT',
             percentage: 0.5, refreshedAt: REFRESHED_AT,
           },
         ],
@@ -140,7 +148,7 @@ describe('flattenPortfolio', () => {
         price: 10000,
         compositeSecurities: [
           {
-            ticker: 'GOOG', tags: [], price: 10000,
+            ticker: 'GOOG',
             percentage: 1.0, refreshedAt: REFRESHED_AT,
           },
         ],
@@ -152,12 +160,12 @@ describe('flattenPortfolio', () => {
     expect(result).toHaveLength(2);
 
     const goog = result.find((r) => r.ticker === 'GOOG')!;
-    expect(goog.effectiveShares).toBeCloseTo(6.0);
+    expect(goog.valueCentsFromComponents).toBeCloseTo(60000);
     expect(goog.totalValueCents).toBeCloseTo(60000);
     expect(goog.percentage).toBeCloseTo(0.667, 2);
 
     const msft = result.find((r) => r.ticker === 'MSFT')!;
-    expect(msft.effectiveShares).toBeCloseTo(1.5);
+    expect(msft.valueCentsFromComponents).toBeCloseTo(30000);
     expect(msft.totalValueCents).toBeCloseTo(30000);
     expect(msft.percentage).toBeCloseTo(0.333, 2);
   });
@@ -177,11 +185,11 @@ describe('flattenPortfolio', () => {
         price: 25000,
         compositeSecurities: [
           {
-            ticker: 'AAPL', tags: [], price: 20000,
+            ticker: 'AAPL',
             percentage: 0.4, refreshedAt: REFRESHED_AT,
           },
           {
-            ticker: 'GOOG', tags: [], price: 15000,
+            ticker: 'GOOG',
             percentage: 0.6, refreshedAt: REFRESHED_AT,
           },
         ],
@@ -193,12 +201,14 @@ describe('flattenPortfolio', () => {
     expect(result).toHaveLength(2);
 
     const aapl = result.find((r) => r.ticker === 'AAPL')!;
-    expect(aapl.effectiveShares).toBeCloseTo(6.5);
+    expect(aapl.shareCount).toBe(5);
+    expect(aapl.valueCentsFromComponents).toBeCloseTo(30000);
     expect(aapl.totalValueCents).toBeCloseTo(130000);
     expect(aapl.percentage).toBeCloseTo(0.4, 1);
 
     const goog = result.find((r) => r.ticker === 'GOOG')!;
-    expect(goog.effectiveShares).toBeCloseTo(13.0);
+    expect(goog.shareCount).toBe(10);
+    expect(goog.valueCentsFromComponents).toBeCloseTo(45000);
     expect(goog.totalValueCents).toBeCloseTo(195000);
     expect(goog.percentage).toBeCloseTo(0.6, 1);
 
@@ -221,13 +231,15 @@ describe('flattenPortfolio', () => {
     expect(result).toHaveLength(2);
 
     const goog = result.find((r) => r.ticker === 'GOOG')!;
-    expect(goog.effectiveShares).toBe(10);
+    expect(goog.shareCount).toBe(10);
     expect(goog.totalValueCents).toBe(150000);
     expect(goog.percentage).toBeCloseTo(0.6);
+    expect(goog.price).toBe(15000);
+    expect(goog.tagsLoaded).toBe(true);
     expect(goog.isUnknown).toBe(false);
 
     const aapl = result.find((r) => r.ticker === 'AAPL')!;
-    expect(aapl.effectiveShares).toBe(5);
+    expect(aapl.shareCount).toBe(5);
     expect(aapl.totalValueCents).toBe(100000);
     expect(aapl.percentage).toBeCloseTo(0.4);
   });
@@ -243,7 +255,7 @@ describe('flattenPortfolio', () => {
         price: 30000,
         compositeSecurities: [
           {
-            ticker: 'GOOG', tags: [], price: 15000,
+            ticker: 'GOOG',
             percentage: 1.0, refreshedAt: REFRESHED_AT,
           },
         ],
@@ -254,7 +266,8 @@ describe('flattenPortfolio', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].ticker).toBe('GOOG');
-    expect(result[0].effectiveShares).toBeCloseTo(8.0);
+    expect(result[0].valueCentsFromComponents)
+      .toBeCloseTo(120000);
     expect(result[0].totalValueCents).toBeCloseTo(120000);
     expect(result[0].percentage).toBeCloseTo(1.0);
   });
@@ -272,11 +285,11 @@ describe('flattenPortfolio', () => {
         price: 10000,
         compositeSecurities: [
           {
-            ticker: 'GOOG', tags: [], price: 10000,
+            ticker: 'GOOG',
             percentage: 0.2, refreshedAt: REFRESHED_AT,
           },
           {
-            ticker: 'MSFT', tags: [], price: 10000,
+            ticker: 'MSFT',
             percentage: 0.8, refreshedAt: REFRESHED_AT,
           },
         ],
@@ -291,11 +304,11 @@ describe('flattenPortfolio', () => {
       expect.arrayContaining([
         expect.objectContaining({
           fromTicker: 'GOOG',
-          effectiveShares: 10,
+          valueCents: 100000,
         }),
         expect.objectContaining({
           fromTicker: 'ETF',
-          effectiveShares: 1,
+          valueCents: 10000,
         }),
       ]),
     );
@@ -318,8 +331,6 @@ describe('flattenPortfolio', () => {
     it(
       'creates unknown entry for ETF with partial composites',
       () => {
-        // ETF at $400, composites: 40% GOOG + 20% AAPL = 60%
-        // Unknown = 40% = $160 per share
         const holdings: Holding[] = [
           { ticker: 'PARTIAL', quantity: 5 },
         ];
@@ -330,11 +341,11 @@ describe('flattenPortfolio', () => {
             price: 40000,
             compositeSecurities: [
               {
-                ticker: 'GOOG', tags: [], price: 10000,
+                ticker: 'GOOG',
                 percentage: 0.4, refreshedAt: REFRESHED_AT,
               },
               {
-                ticker: 'AAPL', tags: [], price: 20000,
+                ticker: 'AAPL',
                 percentage: 0.2, refreshedAt: REFRESHED_AT,
               },
             ],
@@ -344,22 +355,24 @@ describe('flattenPortfolio', () => {
         const result = flattenPortfolio(holdings, dataMap);
 
         // 5 * 40000 = 200000 total ETF value
-        // GOOG: 200000 * 0.4 = 80000, shares = 80000/10000 = 8
-        // AAPL: 200000 * 0.2 = 40000, shares = 40000/20000 = 2
+        // GOOG: 200000 * 0.4 = 80000
+        // AAPL: 200000 * 0.2 = 40000
         // Unknown: 200000 * 0.4 = 80000
         expect(result).toHaveLength(3);
 
         const goog = result.find(
           (r) => r.ticker === 'GOOG',
         )!;
-        expect(goog.effectiveShares).toBeCloseTo(8);
+        expect(goog.valueCentsFromComponents)
+          .toBeCloseTo(80000);
         expect(goog.totalValueCents).toBeCloseTo(80000);
         expect(goog.isUnknown).toBe(false);
 
         const aapl = result.find(
           (r) => r.ticker === 'AAPL',
         )!;
-        expect(aapl.effectiveShares).toBeCloseTo(2);
+        expect(aapl.valueCentsFromComponents)
+          .toBeCloseTo(40000);
         expect(aapl.totalValueCents).toBeCloseTo(40000);
         expect(aapl.isUnknown).toBe(false);
 
@@ -368,13 +381,15 @@ describe('flattenPortfolio', () => {
           'Unknown (From PARTIAL)',
         );
         expect(unknown.totalValueCents).toBeCloseTo(80000);
-        expect(unknown.effectiveShares).toBe(0);
+        expect(unknown.shareCount).toBe(0);
         expect(unknown.tags).toEqual([]);
+        expect(unknown.tagsLoaded).toBe(true);
         expect(unknown.percentage).toBeCloseTo(0.4);
         expect(unknown.components).toHaveLength(1);
-        expect(unknown.components[0].fromTicker).toBe('PARTIAL');
-        expect(unknown.components[0].valueCents).toBeCloseTo(80000);
-        expect(unknown.components[0].effectiveShares).toBe(0);
+        expect(unknown.components[0].fromTicker)
+          .toBe('PARTIAL');
+        expect(unknown.components[0].valueCents)
+          .toBeCloseTo(80000);
       },
     );
 
@@ -401,7 +416,7 @@ describe('flattenPortfolio', () => {
         );
         expect(result[0].totalValueCents).toBeCloseTo(75000);
         expect(result[0].percentage).toBeCloseTo(1.0);
-        expect(result[0].effectiveShares).toBe(0);
+        expect(result[0].shareCount).toBe(0);
         expect(result[0].isUnknown).toBe(true);
       },
     );
@@ -420,7 +435,7 @@ describe('flattenPortfolio', () => {
             price: 10000,
             compositeSecurities: [
               {
-                ticker: 'GOOG', tags: [], price: 10000,
+                ticker: 'GOOG',
                 percentage: 0.5, refreshedAt: REFRESHED_AT,
               },
             ],
@@ -430,7 +445,7 @@ describe('flattenPortfolio', () => {
             price: 20000,
             compositeSecurities: [
               {
-                ticker: 'GOOG', tags: [], price: 10000,
+                ticker: 'GOOG',
                 percentage: 0.3, refreshedAt: REFRESHED_AT,
               },
             ],
@@ -468,8 +483,6 @@ describe('flattenPortfolio', () => {
     it(
       'accumulates unknown from same ETF held multiple times',
       () => {
-        // Holdings merger combines quantities, so this tests
-        // that holding 10 of PARTIAL gives correct unknown
         const holdings: Holding[] = [
           { ticker: 'PARTIAL', quantity: 10 },
         ];
@@ -480,7 +493,7 @@ describe('flattenPortfolio', () => {
             price: 10000,
             compositeSecurities: [
               {
-                ticker: 'GOOG', tags: [], price: 10000,
+                ticker: 'GOOG',
                 percentage: 0.7, refreshedAt: REFRESHED_AT,
               },
             ],
@@ -512,11 +525,11 @@ describe('flattenPortfolio', () => {
             price: 10000,
             compositeSecurities: [
               {
-                ticker: 'GOOG', tags: [], price: 10000,
+                ticker: 'GOOG',
                 percentage: 0.6, refreshedAt: REFRESHED_AT,
               },
               {
-                ticker: 'MSFT', tags: [], price: 10000,
+                ticker: 'MSFT',
                 percentage: 0.4, refreshedAt: REFRESHED_AT,
               },
             ],
@@ -550,7 +563,7 @@ describe('flattenPortfolio', () => {
             price: 20000,
             compositeSecurities: [
               {
-                ticker: 'GOOG', tags: [], price: 10000,
+                ticker: 'GOOG',
                 percentage: 0.5, refreshedAt: REFRESHED_AT,
               },
             ],
@@ -561,9 +574,9 @@ describe('flattenPortfolio', () => {
 
         // Direct GOOG: 10 * 10000 = 100000
         // ETF: 5 * 20000 = 100000
-        //   GOOG: 100000 * 0.5 = 50000, shares=5
+        //   GOOG: 100000 * 0.5 = 50000
         //   Unknown: 100000 * 0.5 = 50000
-        // GOOG total: 150000 (15 shares)
+        // GOOG total: 100000 + 50000 = 150000
         // Unknown: 50000
         // Total: 200000
         expect(result).toHaveLength(2);
@@ -571,7 +584,9 @@ describe('flattenPortfolio', () => {
         const goog = result.find(
           (r) => r.ticker === 'GOOG',
         )!;
-        expect(goog.effectiveShares).toBeCloseTo(15);
+        expect(goog.shareCount).toBe(10);
+        expect(goog.valueCentsFromComponents)
+          .toBeCloseTo(50000);
         expect(goog.totalValueCents).toBeCloseTo(150000);
         expect(goog.percentage).toBeCloseTo(0.75);
 
@@ -582,42 +597,235 @@ describe('flattenPortfolio', () => {
     );
   });
 
-  describe('edge cases: zero prices and NaN/Infinity', () => {
-    it('handles composite with zero price gracefully', () => {
-      const holdings: Holding[] = [
-        { ticker: 'ETF', quantity: 5 },
-      ];
+  describe('compositeDataMap', () => {
+    it(
+      'uses compositeDataMap for price and tags lookup',
+      () => {
+        const holdings: Holding[] = [
+          { ticker: 'ETF', quantity: 5 },
+        ];
 
-      const dataMap = new Map<string, SecurityResponse>([
-        ['ETF', makeEtf({
-          ticker: 'ETF',
-          price: 10000,
-          compositeSecurities: [
+        const dataMap = new Map<string, SecurityResponse>([
+          ['ETF', makeEtf({
+            ticker: 'ETF',
+            price: 10000,
+            compositeSecurities: [
+              {
+                ticker: 'GOOG',
+                percentage: 1.0,
+                refreshedAt: REFRESHED_AT,
+              },
+            ],
+          })],
+        ]);
+
+        const compositeDataMap = new Map<
+          string,
+          SecurityResponse
+        >([
+          ['GOOG', makeStock({
+            ticker: 'GOOG',
+            price: 15000,
+            tags: [
+              {
+                key: 'sector',
+                name: 'Sector',
+                value: 'Tech',
+              },
+            ],
+          })],
+        ]);
+
+        const result = flattenPortfolio(
+          holdings,
+          dataMap,
+          compositeDataMap,
+        );
+
+        expect(result).toHaveLength(1);
+        const goog = result[0];
+        expect(goog.price).toBe(15000);
+        expect(goog.tagsLoaded).toBe(true);
+        expect(goog.tags).toEqual([
+          {
+            key: 'sector',
+            name: 'Sector',
+            value: 'Tech',
+          },
+        ]);
+      },
+    );
+
+    it(
+      'falls back to securityDataMap when not in compositeDataMap',
+      () => {
+        const holdings: Holding[] = [
+          { ticker: 'ETF', quantity: 5 },
+        ];
+
+        const googSecurity = makeStock({
+          ticker: 'GOOG',
+          price: 15000,
+          tags: [
             {
-              ticker: 'GOOG', tags: [], price: 0,
-              percentage: 0.5, refreshedAt: REFRESHED_AT,
-            },
-            {
-              ticker: 'MSFT', tags: [], price: 10000,
-              percentage: 0.5, refreshedAt: REFRESHED_AT,
+              key: 'sector',
+              name: 'Sector',
+              value: 'Tech',
             },
           ],
-        })],
-      ]);
+        });
 
-      const result = flattenPortfolio(holdings, dataMap);
+        const dataMap = new Map<string, SecurityResponse>([
+          ['ETF', makeEtf({
+            ticker: 'ETF',
+            price: 10000,
+            compositeSecurities: [
+              {
+                ticker: 'GOOG',
+                percentage: 1.0,
+                refreshedAt: REFRESHED_AT,
+              },
+            ],
+          })],
+          ['GOOG', googSecurity],
+        ]);
 
-      const goog = result.find((r) => r.ticker === 'GOOG');
-      expect(goog).toBeDefined();
-      expect(goog!.effectiveShares).toBe(0);
-      expect(goog!.totalValueCents).toBeCloseTo(25000);
-      expect(Number.isFinite(goog!.percentage)).toBe(true);
-      expect(Number.isFinite(goog!.effectiveShares)).toBe(true);
+        const result = flattenPortfolio(
+          holdings,
+          dataMap,
+          new Map(),
+        );
 
-      const msft = result.find((r) => r.ticker === 'MSFT');
-      expect(msft).toBeDefined();
-      expect(msft!.effectiveShares).toBeCloseTo(2.5);
-    });
+        expect(result).toHaveLength(1);
+        const goog = result[0];
+        expect(goog.price).toBe(15000);
+        expect(goog.tagsLoaded).toBe(true);
+      },
+    );
+
+    it(
+      'merges composite data with direct holdings',
+      () => {
+        const holdings: Holding[] = [
+          { ticker: 'GOOG', quantity: 10 },
+          { ticker: 'ETF', quantity: 5 },
+        ];
+
+        const dataMap = new Map<string, SecurityResponse>([
+          ['GOOG', makeStock({
+            ticker: 'GOOG',
+            price: 10000,
+            tags: [
+              {
+                key: 'sector',
+                name: 'Sector',
+                value: 'Tech',
+              },
+            ],
+          })],
+          ['ETF', makeEtf({
+            ticker: 'ETF',
+            price: 10000,
+            compositeSecurities: [
+              {
+                ticker: 'GOOG',
+                percentage: 1.0,
+                refreshedAt: REFRESHED_AT,
+              },
+            ],
+          })],
+        ]);
+
+        const result = flattenPortfolio(holdings, dataMap);
+
+        expect(result).toHaveLength(1);
+        const goog = result[0];
+        expect(goog.shareCount).toBe(10);
+        expect(goog.valueCentsFromComponents)
+          .toBeCloseTo(50000);
+        expect(goog.totalValueCents).toBeCloseTo(150000);
+        expect(goog.price).toBe(10000);
+        expect(goog.tagsLoaded).toBe(true);
+      },
+    );
+
+    it(
+      'shows null price and tagsLoaded=false when no data',
+      () => {
+        const holdings: Holding[] = [
+          { ticker: 'ETF', quantity: 5 },
+        ];
+
+        const dataMap = new Map<string, SecurityResponse>([
+          ['ETF', makeEtf({
+            ticker: 'ETF',
+            price: 10000,
+            compositeSecurities: [
+              {
+                ticker: 'GOOG',
+                percentage: 1.0,
+                refreshedAt: REFRESHED_AT,
+              },
+            ],
+          })],
+        ]);
+
+        const result = flattenPortfolio(holdings, dataMap);
+
+        expect(result).toHaveLength(1);
+        const goog = result[0];
+        expect(goog.price).toBe(null);
+        expect(goog.tagsLoaded).toBe(false);
+        expect(goog.tags).toEqual([]);
+      },
+    );
+  });
+
+  describe('edge cases: zero prices and NaN/Infinity', () => {
+    it(
+      'handles composite with no price data gracefully',
+      () => {
+        const holdings: Holding[] = [
+          { ticker: 'ETF', quantity: 5 },
+        ];
+
+        const dataMap = new Map<string, SecurityResponse>([
+          ['ETF', makeEtf({
+            ticker: 'ETF',
+            price: 10000,
+            compositeSecurities: [
+              {
+                ticker: 'GOOG',
+                percentage: 0.5,
+                refreshedAt: REFRESHED_AT,
+              },
+              {
+                ticker: 'MSFT',
+                percentage: 0.5,
+                refreshedAt: REFRESHED_AT,
+              },
+            ],
+          })],
+        ]);
+
+        const result = flattenPortfolio(holdings, dataMap);
+
+        const goog = result.find(
+          (r) => r.ticker === 'GOOG',
+        );
+        expect(goog).toBeDefined();
+        expect(goog!.price).toBe(null);
+        expect(goog!.totalValueCents).toBeCloseTo(25000);
+        expect(Number.isFinite(goog!.percentage)).toBe(true);
+
+        const msft = result.find(
+          (r) => r.ticker === 'MSFT',
+        );
+        expect(msft).toBeDefined();
+        expect(msft!.price).toBe(null);
+        expect(msft!.totalValueCents).toBeCloseTo(25000);
+      },
+    );
 
     it('handles ETF with zero price', () => {
       const holdings: Holding[] = [
@@ -630,7 +838,7 @@ describe('flattenPortfolio', () => {
           price: 0,
           compositeSecurities: [
             {
-              ticker: 'GOOG', tags: [], price: 10000,
+              ticker: 'GOOG',
               percentage: 0.5, refreshedAt: REFRESHED_AT,
             },
           ],
@@ -638,8 +846,6 @@ describe('flattenPortfolio', () => {
       ]);
 
       const result = flattenPortfolio(holdings, dataMap);
-      // ETF value = 5 * 0 = 0, so GOOG gets 0 value, 0 shares
-      // Total portfolio = 0, early return []
       expect(result).toEqual([]);
     });
 
@@ -651,14 +857,17 @@ describe('flattenPortfolio', () => {
 
       const dataMap = new Map<string, SecurityResponse>([
         ['FREE', makeStock({ ticker: 'FREE', price: 0 })],
-        ['GOOG', makeStock({ ticker: 'GOOG', price: 10000 })],
+        ['GOOG', makeStock({
+          ticker: 'GOOG',
+          price: 10000,
+        })],
       ]);
 
       const result = flattenPortfolio(holdings, dataMap);
 
       expect(result).toHaveLength(2);
       const free = result.find((r) => r.ticker === 'FREE')!;
-      expect(free.effectiveShares).toBe(100);
+      expect(free.shareCount).toBe(100);
       expect(free.totalValueCents).toBe(0);
       expect(free.percentage).toBe(0);
       expect(Number.isFinite(free.percentage)).toBe(true);
@@ -681,11 +890,11 @@ describe('flattenPortfolio', () => {
             price: 20000,
             compositeSecurities: [
               {
-                ticker: 'A', tags: [], price: 0,
+                ticker: 'A',
                 percentage: 0.3, refreshedAt: REFRESHED_AT,
               },
               {
-                ticker: 'B', tags: [], price: 5000,
+                ticker: 'B',
                 percentage: 0.7, refreshedAt: REFRESHED_AT,
               },
             ],
@@ -699,15 +908,13 @@ describe('flattenPortfolio', () => {
         const result = flattenPortfolio(holdings, dataMap);
 
         for (const alloc of result) {
-          expect(Number.isFinite(alloc.effectiveShares))
+          expect(Number.isFinite(alloc.shareCount))
             .toBe(true);
           expect(Number.isFinite(alloc.totalValueCents))
             .toBe(true);
           expect(Number.isFinite(alloc.percentage))
             .toBe(true);
           for (const comp of alloc.components) {
-            expect(Number.isFinite(comp.effectiveShares))
-              .toBe(true);
             expect(Number.isFinite(comp.valueCents))
               .toBe(true);
           }
@@ -722,14 +929,20 @@ describe('flattenPortfolio', () => {
       ];
 
       const dataMap = new Map<string, SecurityResponse>([
-        ['GOOG', makeStock({ ticker: 'GOOG', price: 10000 })],
-        ['MSFT', makeStock({ ticker: 'MSFT', price: 20000 })],
+        ['GOOG', makeStock({
+          ticker: 'GOOG',
+          price: 10000,
+        })],
+        ['MSFT', makeStock({
+          ticker: 'MSFT',
+          price: 20000,
+        })],
       ]);
 
       const result = flattenPortfolio(holdings, dataMap);
 
       const goog = result.find((r) => r.ticker === 'GOOG')!;
-      expect(goog.effectiveShares).toBe(0);
+      expect(goog.shareCount).toBe(0);
       expect(goog.totalValueCents).toBe(0);
       expect(goog.percentage).toBe(0);
       expect(Number.isFinite(goog.percentage)).toBe(true);

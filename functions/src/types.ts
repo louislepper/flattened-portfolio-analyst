@@ -6,8 +6,6 @@ export interface SecurityTag {
 
 export interface CompositeSecurity {
   ticker: string;
-  tags: SecurityTag[];
-  price: number;
   percentage: number;
   refreshedAt: string;
 }
