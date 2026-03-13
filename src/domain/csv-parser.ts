@@ -14,7 +14,9 @@ export function parseCsvHoldings(csvText: string): Holding[] {
     startIndex = 1;
   }
 
-  const holdings: Holding[] = [];
+  const holdingMap = new Map<string, number>();
+  const order: string[] = [];
+
   for (let i = startIndex; i < lines.length; i++) {
     const parts = lines[i].split(',');
     if (parts.length < 2) continue;
@@ -23,9 +25,15 @@ export function parseCsvHoldings(csvText: string): Holding[] {
     const quantity = Number(parts[1].trim());
 
     if (ticker.length > 0 && !isNaN(quantity) && quantity > 0) {
-      holdings.push({ ticker, quantity });
+      if (!holdingMap.has(ticker)) {
+        order.push(ticker);
+      }
+      holdingMap.set(ticker, (holdingMap.get(ticker) ?? 0) + quantity);
     }
   }
 
-  return holdings;
+  return order.map((ticker) => ({
+    ticker,
+    quantity: holdingMap.get(ticker)!,
+  }));
 }

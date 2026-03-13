@@ -87,4 +87,14 @@ describe('parseCsvHoldings', () => {
       { ticker: 'MSFT', quantity: 5 },
     ]);
   });
+
+  it('aggregates duplicate securities by adding quantities', () => {
+    const csv = 'TEAM,100\nNET,60\nVB,15\nTEAM,200';
+    const result = parseCsvHoldings(csv);
+    expect(result).toEqual([
+      { ticker: 'TEAM', quantity: 300 },
+      { ticker: 'NET', quantity: 60 },
+      { ticker: 'VB', quantity: 15 },
+    ]);
+  });
 });
