@@ -22,6 +22,7 @@ const COLORS = [
 ];
 
 const EVERYTHING_ELSE_COLOR = '#bdbdbd';
+const UNKNOWN_COLOR = '#9e9e9e';
 const MAX_PIE_SLICES = 19;
 
 interface AllocationPieChartProps {
@@ -40,7 +41,7 @@ function toChartData(
   viewMode: ViewMode,
   allocations: readonly FlattenedAllocation[],
   tagBreakdown: readonly TagBreakdownEntry[],
-): { entries: ChartEntry[]; hasEverythingElse: boolean } {
+): { entries: ChartEntry[]; hasEverythingElse: boolean; hasUnknown: boolean } {
   if (viewMode.kind === 'tag') {
     const visible = tagBreakdown.slice(0, MAX_PIE_SLICES);
     const overflow = tagBreakdown.slice(MAX_PIE_SLICES);
@@ -64,10 +65,13 @@ function toChartData(
       });
     }
 
-    return { entries, hasEverythingElse };
+    return { entries, hasEverythingElse, hasUnknown: false };
   }
 
-  const filtered = filterSmallAllocations(allocations);
+  const unknownAllocations = allocations.filter((a) => a.isUnknown);
+  const knownAllocations = allocations.filter((a) => !a.isUnknown);
+
+  const filtered = filterSmallAllocations(knownAllocations);
   const visible = filtered.visible.map((a) => ({
     name: a.ticker,
     value: a.totalValueCents,
@@ -95,7 +99,20 @@ function toChartData(
     });
   }
 
-  return { entries, hasEverythingElse };
+  const hasUnknown = unknownAllocations.length > 0;
+  if (hasUnknown) {
+    entries.push({
+      name: 'Unknown',
+      value: unknownAllocations.reduce(
+        (s, a) => s + a.totalValueCents, 0,
+      ),
+      percentage: unknownAllocations.reduce(
+        (s, a) => s + a.percentage, 0,
+      ),
+    });
+  }
+
+  return { entries, hasEverythingElse, hasUnknown };
 }
 
 function renderLabel(props: PieLabelRenderProps): string {
@@ -110,7 +127,7 @@ export function AllocationPieChart({
   allocations,
   tagBreakdown,
 }: AllocationPieChartProps) {
-  const { entries: data, hasEverythingElse } = useMemo(
+  const { entries: data, hasEverythingElse, hasUnknown } = useMemo(
     () => toChartData(viewMode, allocations, tagBreakdown),
     [viewMode, allocations, tagBreakdown],
   );
@@ -132,14 +149,20 @@ export function AllocationPieChart({
           label={renderLabel}
         >
           {data.map((entry, index) => {
+            const isUnknown =
+              hasUnknown && index === data.length - 1;
             const isEverythingElse =
-              hasEverythingElse && index === data.length - 1;
+              hasEverythingElse
+              && index === data.length - (hasUnknown ? 2 : 1);
             return (
               <Cell
                 key={entry.name}
-                fill={isEverythingElse
-                  ? EVERYTHING_ELSE_COLOR
-                  : COLORS[index % COLORS.length]
+                fill={
+                  isUnknown
+                    ? UNKNOWN_COLOR
+                    : isEverythingElse
+                    ? EVERYTHING_ELSE_COLOR
+                    : COLORS[index % COLORS.length]
                 }
               />
             );

@@ -15,6 +15,7 @@ export function parseCsvHoldings(csvText: string): Holding[] {
   }
 
   const holdingMap = new Map<string, number>();
+  const priceMap = new Map<string, number>();
   const order: string[] = [];
 
   for (let i = startIndex; i < lines.length; i++) {
@@ -29,11 +30,26 @@ export function parseCsvHoldings(csvText: string): Holding[] {
         order.push(ticker);
       }
       holdingMap.set(ticker, (holdingMap.get(ticker) ?? 0) + quantity);
+
+      if (parts.length >= 3) {
+        const priceStr = parts[2].trim();
+        const priceUsd = Number(priceStr);
+        if (priceStr.length > 0 && !isNaN(priceUsd) && priceUsd > 0) {
+          priceMap.set(ticker, Math.round(priceUsd * 100));
+        }
+      }
     }
   }
 
-  return order.map((ticker) => ({
-    ticker,
-    quantity: holdingMap.get(ticker)!,
-  }));
+  return order.map((ticker) => {
+    const holding: Holding = {
+      ticker,
+      quantity: holdingMap.get(ticker)!,
+    };
+    const overridePrice = priceMap.get(ticker);
+    if (overridePrice !== undefined) {
+      return { ...holding, overridePrice };
+    }
+    return holding;
+  });
 }

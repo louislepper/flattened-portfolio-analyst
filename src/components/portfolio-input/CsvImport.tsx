@@ -1,5 +1,7 @@
 import { useRef, type ChangeEvent } from 'react';
+import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import type { Holding } from '../../domain/types';
 import { parseCsvHoldings } from '../../domain/csv-parser';
@@ -33,7 +35,7 @@ export function CsvImport({ onImport }: CsvImportProps) {
   };
 
   return (
-    <>
+    <Box>
       <input
         ref={fileInputRef}
         type="file"
@@ -49,6 +51,9 @@ export function CsvImport({ onImport }: CsvImportProps) {
       >
         Import CSV
       </Button>
-    </>
+      <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+        Format: SYMBOL,Quantity,Price(optional)
+      </Typography>
+    </Box>
   );
 }

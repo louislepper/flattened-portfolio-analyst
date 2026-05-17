@@ -104,6 +104,127 @@ describe('AllocationPieChart', () => {
     },
   );
 
+  it('aggregates multiple unknown allocations into a single Unknown slice', () => {
+    const allocations: FlattenedAllocation[] = [
+      ...ALLOCATIONS,
+      {
+        ticker: 'Unknown (From ETF1)',
+        shareCount: 0,
+        valueCentsFromComponents: 10000,
+        totalValueCents: 10000,
+        percentage: 0.05,
+        price: null,
+        tags: [],
+        tagsLoaded: true,
+        components: [],
+        isUnknown: true,
+      },
+      {
+        ticker: 'Unknown (From ETF2)',
+        shareCount: 0,
+        valueCentsFromComponents: 5000,
+        totalValueCents: 5000,
+        percentage: 0.03,
+        price: null,
+        tags: [],
+        tagsLoaded: true,
+        components: [],
+        isUnknown: true,
+      },
+    ];
+
+    render(
+      <AllocationPieChart
+        viewMode={{ kind: 'securities' }}
+        allocations={allocations}
+        tagBreakdown={[]}
+      />,
+    );
+
+    expect(screen.getByText('Unknown')).toBeInTheDocument();
+    expect(screen.queryByText('Unknown (From ETF1)')).not.toBeInTheDocument();
+    expect(screen.queryByText('Unknown (From ETF2)')).not.toBeInTheDocument();
+  });
+
+  it('always shows Unknown even when tiny', () => {
+    const allocations: FlattenedAllocation[] = [
+      {
+        ticker: 'GOOG',
+        shareCount: 100,
+        valueCentsFromComponents: 0,
+        totalValueCents: 1000000,
+        percentage: 0.9999,
+        price: 10000,
+        tags: [],
+        tagsLoaded: true,
+        components: [],
+        isUnknown: false,
+      },
+      {
+        ticker: 'Unknown (From ETF1)',
+        shareCount: 0,
+        valueCentsFromComponents: 1,
+        totalValueCents: 1,
+        percentage: 0.000001,
+        price: null,
+        tags: [],
+        tagsLoaded: true,
+        components: [],
+        isUnknown: true,
+      },
+    ];
+
+    render(
+      <AllocationPieChart
+        viewMode={{ kind: 'securities' }}
+        allocations={allocations}
+        tagBreakdown={[]}
+      />,
+    );
+
+    expect(screen.getByText('Unknown')).toBeInTheDocument();
+  });
+
+  it('always shows Unknown even when MAX_PIE_SLICES is exceeded', () => {
+    const manyAllocations: FlattenedAllocation[] = [
+      ...Array.from({ length: 25 }, (_, i) => ({
+        ticker: `STOCK_${i}`,
+        shareCount: 100 - i,
+        valueCentsFromComponents: 0,
+        totalValueCents: (100 - i) * 1000,
+        percentage: (100 - i) / 2150,
+        price: 1000,
+        tags: [],
+        tagsLoaded: true,
+        components: [],
+        isUnknown: false,
+      })),
+      {
+        ticker: 'Unknown (From ETF1)',
+        shareCount: 0,
+        valueCentsFromComponents: 500,
+        totalValueCents: 500,
+        percentage: 0.001,
+        price: null,
+        tags: [],
+        tagsLoaded: true,
+        components: [],
+        isUnknown: true,
+      },
+    ];
+
+    render(
+      <AllocationPieChart
+        viewMode={{ kind: 'securities' }}
+        allocations={manyAllocations}
+        tagBreakdown={[]}
+      />,
+    );
+
+    expect(screen.getByText('Unknown')).toBeInTheDocument();
+    expect(screen.getByText('Everything else')).toBeInTheDocument();
+  });
+
   it(
     'limits tag view to 19 slices plus everything else',
     () => {
