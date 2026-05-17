@@ -7,7 +7,6 @@ const meta: Meta<typeof HoldingsList> = {
   component: HoldingsList,
   args: {
     onRemove: fn(),
-    onClear: fn(),
     onAnalyze: fn(),
     isLoading: false,
   },
