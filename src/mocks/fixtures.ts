@@ -5,6 +5,7 @@ const REFRESHED_AT = '2026-03-01T00:00:00Z';
 export const MOCK_SECURITIES: Record<string, SecurityResponse> = {
   GOOG: {
     ticker: 'GOOG',
+    isin: null,
     type: 'stock',
     price: 15000,
     refreshedAt: REFRESHED_AT,
@@ -24,6 +25,7 @@ export const MOCK_SECURITIES: Record<string, SecurityResponse> = {
   },
   MSFT: {
     ticker: 'MSFT',
+    isin: null,
     type: 'stock',
     price: 40000,
     refreshedAt: REFRESHED_AT,
@@ -43,6 +45,7 @@ export const MOCK_SECURITIES: Record<string, SecurityResponse> = {
   },
   AAPL: {
     ticker: 'AAPL',
+    isin: null,
     type: 'stock',
     price: 20000,
     refreshedAt: REFRESHED_AT,
@@ -62,6 +65,7 @@ export const MOCK_SECURITIES: Record<string, SecurityResponse> = {
   },
   JPM: {
     ticker: 'JPM',
+    isin: null,
     type: 'stock',
     price: 18000,
     refreshedAt: REFRESHED_AT,
@@ -81,6 +85,7 @@ export const MOCK_SECURITIES: Record<string, SecurityResponse> = {
   },
   TECH_ETF: {
     ticker: 'TECH_ETF',
+    isin: null,
     type: 'etf',
     price: 50000,
     refreshedAt: REFRESHED_AT,
@@ -94,16 +99,19 @@ export const MOCK_SECURITIES: Record<string, SecurityResponse> = {
     compositeSecurities: [
       {
         ticker: 'GOOG',
+        isin: null,
         percentage: 0.4,
         refreshedAt: REFRESHED_AT,
       },
       {
         ticker: 'MSFT',
+        isin: null,
         percentage: 0.35,
         refreshedAt: REFRESHED_AT,
       },
       {
         ticker: 'AAPL',
+        isin: null,
         percentage: 0.25,
         refreshedAt: REFRESHED_AT,
       },
@@ -111,6 +119,7 @@ export const MOCK_SECURITIES: Record<string, SecurityResponse> = {
   },
   BALANCED_ETF: {
     ticker: 'BALANCED_ETF',
+    isin: null,
     type: 'etf',
     price: 30000,
     refreshedAt: REFRESHED_AT,
@@ -118,11 +127,13 @@ export const MOCK_SECURITIES: Record<string, SecurityResponse> = {
     compositeSecurities: [
       {
         ticker: 'GOOG',
+        isin: null,
         percentage: 0.3,
         refreshedAt: REFRESHED_AT,
       },
       {
         ticker: 'JPM',
+        isin: null,
         percentage: 0.7,
         refreshedAt: REFRESHED_AT,
       },
@@ -130,6 +141,7 @@ export const MOCK_SECURITIES: Record<string, SecurityResponse> = {
   },
   PARTIAL_ETF: {
     ticker: 'PARTIAL_ETF',
+    isin: null,
     type: 'etf',
     price: 40000,
     refreshedAt: REFRESHED_AT,
@@ -137,11 +149,13 @@ export const MOCK_SECURITIES: Record<string, SecurityResponse> = {
     compositeSecurities: [
       {
         ticker: 'GOOG',
+        isin: null,
         percentage: 0.4,
         refreshedAt: REFRESHED_AT,
       },
       {
         ticker: 'AAPL',
+        isin: null,
         percentage: 0.2,
         refreshedAt: REFRESHED_AT,
       },
@@ -149,6 +163,7 @@ export const MOCK_SECURITIES: Record<string, SecurityResponse> = {
   },
   MYSTERY_ETF: {
     ticker: 'MYSTERY_ETF',
+    isin: null,
     type: 'etf',
     price: 25000,
     refreshedAt: REFRESHED_AT,
