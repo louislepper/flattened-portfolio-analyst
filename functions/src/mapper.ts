@@ -5,12 +5,13 @@ export function mapSecurityDocToResponse(
 ): SecurityResponse {
   return {
     ticker: doc.ticker,
+    isin: doc.isin,
     type: doc.type,
     price: doc.price,
     tags: doc.tags,
     compositeSecurities: doc.compositeSecurities.map(
-      ({ ticker, percentage, refreshedAt }) => ({
-        ticker, percentage, refreshedAt,
+      ({ ticker, isin, percentage, refreshedAt }) => ({
+        ticker, isin, percentage, refreshedAt,
       })
     ),
     refreshedAt: doc.refreshedAt,

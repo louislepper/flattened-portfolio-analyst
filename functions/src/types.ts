@@ -6,12 +6,14 @@ export interface SecurityTag {
 
 export interface CompositeSecurity {
   ticker: string;
+  isin: string | null;
   percentage: number;
   refreshedAt: string;
 }
 
 export interface SecurityDoc {
   ticker: string;
+  isin: string | null;
   type: "stock" | "etf";
   price: number;
   tags: SecurityTag[];
@@ -22,6 +24,7 @@ export interface SecurityDoc {
 
 export interface SecurityResponse {
   ticker: string;
+  isin: string | null;
   type: "stock" | "etf";
   price: number;
   tags: SecurityTag[];
