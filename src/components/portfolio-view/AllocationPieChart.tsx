@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { PieLabelRenderProps } from 'recharts';
-import { PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import Box from '@mui/material/Box';
 import type { FlattenedAllocation } from '../../domain/types';
 import type { TagBreakdownEntry } from '../../domain/types';
@@ -135,53 +135,53 @@ export function AllocationPieChart({
   if (data.length === 0) return null;
 
   return (
-    <Box
-      sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}
-    >
-      <PieChart width={500} height={400}>
-        <Pie
-          data={data}
-          dataKey="value"
-          nameKey="name"
-          cx="50%"
-          cy="50%"
-          outerRadius={140}
-          label={renderLabel}
-        >
-          {data.map((entry, index) => {
-            const isUnknown =
-              hasUnknown && index === data.length - 1;
-            const isEverythingElse =
-              hasEverythingElse
-              && index === data.length - (hasUnknown ? 2 : 1);
-            return (
-              <Cell
-                key={entry.name}
-                fill={
-                  isUnknown
-                    ? UNKNOWN_COLOR
-                    : isEverythingElse
-                    ? EVERYTHING_ELSE_COLOR
-                    : COLORS[index % COLORS.length]
-                }
-              />
-            );
-          })}
-        </Pie>
-        <Tooltip
-          formatter={(
-            _value,
-            _name,
-            props,
-          ) => {
-            const entry = props.payload as
-              ChartEntry | undefined;
-            if (!entry) return '';
-            return formatPercentage(entry.percentage);
-          }}
-        />
-        <Legend />
-      </PieChart>
+    <Box sx={{ width: '100%', mt: 2 }}>
+      <ResponsiveContainer width="100%" height={500}>
+        <PieChart>
+          <Pie
+            data={data}
+            dataKey="value"
+            nameKey="name"
+            cx="50%"
+            cy="50%"
+            outerRadius={160}
+            label={renderLabel}
+          >
+            {data.map((entry, index) => {
+              const isUnknown =
+                hasUnknown && index === data.length - 1;
+              const isEverythingElse =
+                hasEverythingElse
+                && index === data.length - (hasUnknown ? 2 : 1);
+              return (
+                <Cell
+                  key={entry.name}
+                  fill={
+                    isUnknown
+                      ? UNKNOWN_COLOR
+                      : isEverythingElse
+                      ? EVERYTHING_ELSE_COLOR
+                      : COLORS[index % COLORS.length]
+                  }
+                />
+              );
+            })}
+          </Pie>
+          <Tooltip
+            formatter={(
+              _value,
+              _name,
+              props,
+            ) => {
+              const entry = props.payload as
+                ChartEntry | undefined;
+              if (!entry) return '';
+              return formatPercentage(entry.percentage);
+            }}
+          />
+          <Legend />
+        </PieChart>
+      </ResponsiveContainer>
     </Box>
   );
 }

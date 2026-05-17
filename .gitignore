@@ -26,6 +26,13 @@ dist-ssr
 # Storybook
 storybook-static
 
+# Environment / secrets
+.env
+
+# Data caches
+etf-holdings-cache/
+*-cache.json
+
 # Firebase
 functions/dist
 functions/node_modules

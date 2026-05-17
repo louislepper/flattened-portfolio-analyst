@@ -13,6 +13,7 @@ function makeStock(
     tags: [],
     price: 0,
     compositeSecurities: [],
+    isin: null,
     refreshedAt: REFRESHED_AT,
     ...overrides,
   };
@@ -26,6 +27,7 @@ function makeEtf(
     tags: [],
     price: 0,
     compositeSecurities: [],
+    isin: null,
     refreshedAt: REFRESHED_AT,
     ...overrides,
   };
@@ -46,10 +48,12 @@ describe('flattenPortfolio', () => {
         compositeSecurities: [
           {
             ticker: 'GOOG',
+            isin: null,
             percentage: 0.2, refreshedAt: REFRESHED_AT,
           },
           {
             ticker: 'MSFT',
+            isin: null,
             percentage: 0.8, refreshedAt: REFRESHED_AT,
           },
         ],
@@ -95,10 +99,12 @@ describe('flattenPortfolio', () => {
         compositeSecurities: [
           {
             ticker: 'GOOG',
+            isin: null,
             percentage: 0.2, refreshedAt: REFRESHED_AT,
           },
           {
             ticker: 'MSFT',
+            isin: null,
             percentage: 0.8, refreshedAt: REFRESHED_AT,
           },
         ],
@@ -135,10 +141,12 @@ describe('flattenPortfolio', () => {
         compositeSecurities: [
           {
             ticker: 'GOOG',
+            isin: null,
             percentage: 0.5, refreshedAt: REFRESHED_AT,
           },
           {
             ticker: 'MSFT',
+            isin: null,
             percentage: 0.5, refreshedAt: REFRESHED_AT,
           },
         ],
@@ -149,6 +157,7 @@ describe('flattenPortfolio', () => {
         compositeSecurities: [
           {
             ticker: 'GOOG',
+            isin: null,
             percentage: 1.0, refreshedAt: REFRESHED_AT,
           },
         ],
@@ -186,10 +195,12 @@ describe('flattenPortfolio', () => {
         compositeSecurities: [
           {
             ticker: 'AAPL',
+            isin: null,
             percentage: 0.4, refreshedAt: REFRESHED_AT,
           },
           {
             ticker: 'GOOG',
+            isin: null,
             percentage: 0.6, refreshedAt: REFRESHED_AT,
           },
         ],
@@ -256,6 +267,7 @@ describe('flattenPortfolio', () => {
         compositeSecurities: [
           {
             ticker: 'GOOG',
+            isin: null,
             percentage: 1.0, refreshedAt: REFRESHED_AT,
           },
         ],
@@ -286,10 +298,12 @@ describe('flattenPortfolio', () => {
         compositeSecurities: [
           {
             ticker: 'GOOG',
+            isin: null,
             percentage: 0.2, refreshedAt: REFRESHED_AT,
           },
           {
             ticker: 'MSFT',
+            isin: null,
             percentage: 0.8, refreshedAt: REFRESHED_AT,
           },
         ],
@@ -342,10 +356,12 @@ describe('flattenPortfolio', () => {
             compositeSecurities: [
               {
                 ticker: 'GOOG',
+                isin: null,
                 percentage: 0.4, refreshedAt: REFRESHED_AT,
               },
               {
                 ticker: 'AAPL',
+                isin: null,
                 percentage: 0.2, refreshedAt: REFRESHED_AT,
               },
             ],
@@ -436,6 +452,7 @@ describe('flattenPortfolio', () => {
             compositeSecurities: [
               {
                 ticker: 'GOOG',
+                isin: null,
                 percentage: 0.5, refreshedAt: REFRESHED_AT,
               },
             ],
@@ -446,6 +463,7 @@ describe('flattenPortfolio', () => {
             compositeSecurities: [
               {
                 ticker: 'GOOG',
+                isin: null,
                 percentage: 0.3, refreshedAt: REFRESHED_AT,
               },
             ],
@@ -494,6 +512,7 @@ describe('flattenPortfolio', () => {
             compositeSecurities: [
               {
                 ticker: 'GOOG',
+                isin: null,
                 percentage: 0.7, refreshedAt: REFRESHED_AT,
               },
             ],
@@ -526,10 +545,12 @@ describe('flattenPortfolio', () => {
             compositeSecurities: [
               {
                 ticker: 'GOOG',
+                isin: null,
                 percentage: 0.6, refreshedAt: REFRESHED_AT,
               },
               {
                 ticker: 'MSFT',
+                isin: null,
                 percentage: 0.4, refreshedAt: REFRESHED_AT,
               },
             ],
@@ -564,6 +585,7 @@ describe('flattenPortfolio', () => {
             compositeSecurities: [
               {
                 ticker: 'GOOG',
+                isin: null,
                 percentage: 0.5, refreshedAt: REFRESHED_AT,
               },
             ],
@@ -612,6 +634,7 @@ describe('flattenPortfolio', () => {
             compositeSecurities: [
               {
                 ticker: 'GOOG',
+                isin: null,
                 percentage: 1.0,
                 refreshedAt: REFRESHED_AT,
               },
@@ -682,6 +705,7 @@ describe('flattenPortfolio', () => {
             compositeSecurities: [
               {
                 ticker: 'GOOG',
+                isin: null,
                 percentage: 1.0,
                 refreshedAt: REFRESHED_AT,
               },
@@ -729,6 +753,7 @@ describe('flattenPortfolio', () => {
             compositeSecurities: [
               {
                 ticker: 'GOOG',
+                isin: null,
                 percentage: 1.0,
                 refreshedAt: REFRESHED_AT,
               },
@@ -763,6 +788,7 @@ describe('flattenPortfolio', () => {
             compositeSecurities: [
               {
                 ticker: 'GOOG',
+                isin: null,
                 percentage: 1.0,
                 refreshedAt: REFRESHED_AT,
               },
@@ -796,11 +822,13 @@ describe('flattenPortfolio', () => {
             compositeSecurities: [
               {
                 ticker: 'GOOG',
+                isin: null,
                 percentage: 0.5,
                 refreshedAt: REFRESHED_AT,
               },
               {
                 ticker: 'MSFT',
+                isin: null,
                 percentage: 0.5,
                 refreshedAt: REFRESHED_AT,
               },
@@ -839,6 +867,7 @@ describe('flattenPortfolio', () => {
           compositeSecurities: [
             {
               ticker: 'GOOG',
+              isin: null,
               percentage: 0.5, refreshedAt: REFRESHED_AT,
             },
           ],
@@ -891,10 +920,12 @@ describe('flattenPortfolio', () => {
             compositeSecurities: [
               {
                 ticker: 'A',
+                isin: null,
                 percentage: 0.3, refreshedAt: REFRESHED_AT,
               },
               {
                 ticker: 'B',
+                isin: null,
                 percentage: 0.7, refreshedAt: REFRESHED_AT,
               },
             ],

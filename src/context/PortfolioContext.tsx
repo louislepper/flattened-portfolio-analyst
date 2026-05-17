@@ -201,6 +201,7 @@ export function PortfolioProvider({
         if (overridePrice !== undefined) {
           resolvedData.set(ticker, {
             ticker,
+            isin: null,
             type: 'stock',
             price: overridePrice,
             tags: [],
