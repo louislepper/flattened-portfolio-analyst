@@ -8,7 +8,7 @@ import { server } from './mocks/server';
 global.ResizeObserver = class ResizeObserver {
   private cb: ResizeObserverCallback;
   constructor(cb: ResizeObserverCallback) { this.cb = cb; }
-  observe(target: Element) {
+  observe(_target: Element) {
     this.cb(
       [{ contentRect: { width: 800, height: 500 } } as ResizeObserverEntry],
       this,
