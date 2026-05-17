@@ -11,7 +11,6 @@ import type { Holding } from '../../domain/types';
 interface HoldingsListProps {
   readonly holdings: readonly Holding[];
   readonly onRemove: (ticker: string) => void;
-  readonly onClear: () => void;
   readonly onAnalyze: () => void;
   readonly isLoading: boolean;
 }
@@ -19,7 +18,6 @@ interface HoldingsListProps {
 export function HoldingsList({
   holdings,
   onRemove,
-  onClear,
   onAnalyze,
   isLoading,
 }: HoldingsListProps) {
@@ -63,14 +61,6 @@ export function HoldingsList({
           disabled={isLoading}
         >
           {isLoading ? 'Analyzing...' : 'Analyze Portfolio'}
-        </Button>
-        <Button
-          variant="outlined"
-          color="secondary"
-          onClick={onClear}
-          disabled={isLoading}
-        >
-          Clear All
         </Button>
       </Stack>
     </>

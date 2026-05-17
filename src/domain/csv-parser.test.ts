@@ -141,4 +141,51 @@ describe('parseCsvHoldings', () => {
       { ticker: 'GOOG', quantity: 10, overridePrice: 15000 },
     ]);
   });
+
+  it('handles quoted fields containing commas', () => {
+    const csv = 'Symbol,Quantity,Price,Value\nAMZN,239,264.14,"$63,129.46"';
+    const result = parseCsvHoldings(csv);
+    expect(result).toEqual([
+      { ticker: 'AMZN', quantity: 239, overridePrice: 26414 },
+    ]);
+  });
+
+  it('handles quoted quantity containing commas', () => {
+    const csv = 'USD_CASH,"101,500.00",1,101500';
+    const result = parseCsvHoldings(csv);
+    expect(result).toEqual([
+      { ticker: 'USD_CASH', quantity: 101500, overridePrice: 100 },
+    ]);
+  });
+
+  it('strips dollar signs from numeric fields', () => {
+    const csv = 'GOOG,10,$150.50';
+    const result = parseCsvHoldings(csv);
+    expect(result).toEqual([
+      { ticker: 'GOOG', quantity: 10, overridePrice: 15050 },
+    ]);
+  });
+
+  it('skips rows with empty ticker', () => {
+    const csv = 'Symbol,Quantity,Price,Value\nAMZN,10,100,"$1,000"\n,,,\n,,,"$5,000"';
+    const result = parseCsvHoldings(csv);
+    expect(result).toEqual([
+      { ticker: 'AMZN', quantity: 10, overridePrice: 10000 },
+    ]);
+  });
+
+  it('handles a realistic multi-column export with quoted values', () => {
+    const csv = [
+      'Symbol,Quantity,Price,Value',
+      'AMZN,239,264.14,"$63,129.46"',
+      'TEAM,343,87.46,"$29,998.78"',
+      'USD_CASH,"101,500.00",1,101500',
+    ].join('\n');
+    const result = parseCsvHoldings(csv);
+    expect(result).toEqual([
+      { ticker: 'AMZN', quantity: 239, overridePrice: 26414 },
+      { ticker: 'TEAM', quantity: 343, overridePrice: 8746 },
+      { ticker: 'USD_CASH', quantity: 101500, overridePrice: 100 },
+    ]);
+  });
 });

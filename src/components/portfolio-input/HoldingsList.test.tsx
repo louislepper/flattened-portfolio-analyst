@@ -5,7 +5,6 @@ import { HoldingsList } from './HoldingsList';
 
 const DEFAULT_PROPS = {
   onRemove: vi.fn(),
-  onClear: vi.fn(),
   onAnalyze: vi.fn(),
   isLoading: false,
 };
@@ -74,23 +73,6 @@ describe('HoldingsList', () => {
     expect(onAnalyze).toHaveBeenCalled();
   });
 
-  it('calls onClear when clear button clicked', async () => {
-    const onClear = vi.fn();
-    const user = userEvent.setup();
-    render(
-      <HoldingsList
-        {...DEFAULT_PROPS}
-        holdings={[{ ticker: 'GOOG', quantity: 10 }]}
-        onClear={onClear}
-      />,
-    );
-
-    await user.click(
-      screen.getByRole('button', { name: 'Clear All' }),
-    );
-    expect(onClear).toHaveBeenCalled();
-  });
-
   it(
     'disables buttons when loading',
     () => {
@@ -104,9 +86,6 @@ describe('HoldingsList', () => {
 
       expect(
         screen.getByRole('button', { name: /analyzing/i }),
-      ).toBeDisabled();
-      expect(
-        screen.getByRole('button', { name: 'Clear All' }),
       ).toBeDisabled();
     },
   );
