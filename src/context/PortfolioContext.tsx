@@ -177,7 +177,42 @@ export function PortfolioProvider({
       const tickers = state.holdings.map((h) => h.ticker);
       const result = await fetchSecurities(tickers);
 
-      if (result.successes.size === 0) {
+      const overridePrices = new Map<string, number>();
+      for (const holding of state.holdings) {
+        if (holding.overridePrice !== undefined) {
+          overridePrices.set(holding.ticker, holding.overridePrice);
+        }
+      }
+
+      const resolvedData = new Map<string, SecurityResponse>();
+      for (const [ticker, security] of result.successes) {
+        const overridePrice = overridePrices.get(ticker);
+        resolvedData.set(
+          ticker,
+          overridePrice !== undefined
+            ? { ...security, price: overridePrice }
+            : security,
+        );
+      }
+
+      const failedTickers: string[] = [];
+      for (const [ticker] of result.failures) {
+        const overridePrice = overridePrices.get(ticker);
+        if (overridePrice !== undefined) {
+          resolvedData.set(ticker, {
+            ticker,
+            type: 'stock',
+            price: overridePrice,
+            tags: [],
+            compositeSecurities: [],
+            refreshedAt: new Date().toISOString(),
+          });
+        } else {
+          failedTickers.push(ticker);
+        }
+      }
+
+      if (resolvedData.size === 0) {
         dispatch({
           type: 'FETCH_ERROR',
           message: 'Failed to fetch any security data',
@@ -187,8 +222,8 @@ export function PortfolioProvider({
 
       dispatch({
         type: 'FETCH_SUCCESS',
-        data: result.successes,
-        failedTickers: Array.from(result.failures.keys()),
+        data: resolvedData,
+        failedTickers,
       });
     } catch (e) {
       dispatch({

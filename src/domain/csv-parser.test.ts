@@ -97,4 +97,48 @@ describe('parseCsvHoldings', () => {
       { ticker: 'VB', quantity: 15 },
     ]);
   });
+
+  it('parses optional price column and converts USD to cents', () => {
+    const csv = 'GOOG,10,150.50\nMSFT,5,300';
+    const result = parseCsvHoldings(csv);
+    expect(result).toEqual([
+      { ticker: 'GOOG', quantity: 10, overridePrice: 15050 },
+      { ticker: 'MSFT', quantity: 5, overridePrice: 30000 },
+    ]);
+  });
+
+  it('omits overridePrice when price column is absent', () => {
+    const csv = 'GOOG,10\nMSFT,5,300';
+    const result = parseCsvHoldings(csv);
+    expect(result).toEqual([
+      { ticker: 'GOOG', quantity: 10 },
+      { ticker: 'MSFT', quantity: 5, overridePrice: 30000 },
+    ]);
+  });
+
+  it('ignores invalid price values', () => {
+    const csv = 'GOOG,10,abc\nMSFT,5,0\nAAPL,3,-5';
+    const result = parseCsvHoldings(csv);
+    expect(result).toEqual([
+      { ticker: 'GOOG', quantity: 10 },
+      { ticker: 'MSFT', quantity: 5 },
+      { ticker: 'AAPL', quantity: 3 },
+    ]);
+  });
+
+  it('uses last specified price for duplicate tickers', () => {
+    const csv = 'GOOG,10,100\nGOOG,5,200';
+    const result = parseCsvHoldings(csv);
+    expect(result).toEqual([
+      { ticker: 'GOOG', quantity: 15, overridePrice: 20000 },
+    ]);
+  });
+
+  it('auto-detects header when price column header is present', () => {
+    const csv = 'Ticker,Quantity,Price\nGOOG,10,150';
+    const result = parseCsvHoldings(csv);
+    expect(result).toEqual([
+      { ticker: 'GOOG', quantity: 10, overridePrice: 15000 },
+    ]);
+  });
 });

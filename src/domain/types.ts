@@ -3,6 +3,7 @@ import type { SecurityTag } from '../api/types';
 export interface Holding {
   readonly ticker: string;
   readonly quantity: number;
+  readonly overridePrice?: number; // in cents
 }
 
 export interface AllocationComponent {
