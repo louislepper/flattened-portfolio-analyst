@@ -1,4 +1,5 @@
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
@@ -27,13 +28,25 @@ export function PortfolioInputPanel() {
         <CsvImport onImport={addHoldings} />
       </Stack>
       <Divider sx={{ my: 2 }} />
-      <Typography variant="h6" gutterBottom>
-        Holdings
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+        <Typography variant="h6" sx={{ flexGrow: 1 }}>
+          Holdings
+        </Typography>
+        {state.holdings.length > 0 && (
+          <Button
+            size="small"
+            variant="outlined"
+            color="secondary"
+            onClick={clearHoldings}
+            disabled={state.phase === 'loading'}
+          >
+            Clear All
+          </Button>
+        )}
+      </Box>
       <HoldingsList
         holdings={state.holdings}
         onRemove={removeHolding}
-        onClear={clearHoldings}
         onAnalyze={analyzePortfolio}
         isLoading={state.phase === 'loading'}
       />
