@@ -66,6 +66,29 @@ const TAG_BREAKDOWN: TagBreakdownEntry[] = [
   },
 ];
 
+function makeManyAllocations(
+  count: number,
+): FlattenedAllocation[] {
+  const weights = Array.from(
+    { length: count },
+    (_, i) => count - i,
+  );
+  const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+
+  return weights.map((weight, i) => ({
+    ticker: `TICK${String(i + 1).padStart(3, '0')}`,
+    shareCount: weight,
+    valueCentsFromComponents: 0,
+    totalValueCents: weight * 10000,
+    percentage: weight / totalWeight,
+    price: 10000,
+    tags: [],
+    tagsLoaded: true,
+    components: [],
+    isUnknown: false,
+  }));
+}
+
 describe('AllocationList', () => {
   it('renders securities table in securities mode', () => {
     render(
@@ -376,6 +399,145 @@ describe('AllocationList', () => {
       expect(
         screen.queryByTestId('unknown-note'),
       ).not.toBeInTheDocument();
+    },
+  );
+
+  it(
+    'shows all rows without expanders at the split threshold',
+    () => {
+      render(
+        <AllocationList
+          viewMode={{ kind: 'securities' }}
+          allocations={makeManyAllocations(40)}
+          tagBreakdown={[]}
+        />,
+      );
+
+      expect(screen.getByText('TICK001')).toBeInTheDocument();
+      expect(screen.getByText('TICK040')).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('show-more-top'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('show-more-bottom'),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it(
+    'splits into top 35 and bottom 5 with two expanders '
+    + 'when over the threshold',
+    () => {
+      render(
+        <AllocationList
+          viewMode={{ kind: 'securities' }}
+          allocations={makeManyAllocations(100)}
+          tagBreakdown={[]}
+        />,
+      );
+
+      // Top section: TICK001..TICK035
+      expect(screen.getByText('TICK001')).toBeInTheDocument();
+      expect(screen.getByText('TICK035')).toBeInTheDocument();
+      // Middle is hidden
+      expect(
+        screen.queryByText('TICK036'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('TICK095'),
+      ).not.toBeInTheDocument();
+      // Bottom section: TICK096..TICK100
+      expect(screen.getByText('TICK096')).toBeInTheDocument();
+      expect(screen.getByText('TICK100')).toBeInTheDocument();
+
+      expect(
+        screen.getByTestId('show-more-top'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId('show-more-bottom'),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it(
+    'reveals 10 more from the top when top expander clicked',
+    async () => {
+      const user = userEvent.setup();
+      render(
+        <AllocationList
+          viewMode={{ kind: 'securities' }}
+          allocations={makeManyAllocations(100)}
+          tagBreakdown={[]}
+        />,
+      );
+
+      expect(
+        screen.queryByText('TICK036'),
+      ).not.toBeInTheDocument();
+
+      await user.click(screen.getByTestId('show-more-top'));
+
+      // TICK036..TICK045 now visible, TICK046 still hidden
+      expect(screen.getByText('TICK036')).toBeInTheDocument();
+      expect(screen.getByText('TICK045')).toBeInTheDocument();
+      expect(
+        screen.queryByText('TICK046'),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it(
+    'reveals 10 more from the bottom when bottom expander clicked',
+    async () => {
+      const user = userEvent.setup();
+      render(
+        <AllocationList
+          viewMode={{ kind: 'securities' }}
+          allocations={makeManyAllocations(100)}
+          tagBreakdown={[]}
+        />,
+      );
+
+      expect(
+        screen.queryByText('TICK095'),
+      ).not.toBeInTheDocument();
+
+      await user.click(screen.getByTestId('show-more-bottom'));
+
+      // bottomCount grows to 15: TICK086..TICK095 now visible
+      expect(screen.getByText('TICK091')).toBeInTheDocument();
+      expect(screen.getByText('TICK086')).toBeInTheDocument();
+      expect(
+        screen.queryByText('TICK085'),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it(
+    'collapses expanders once sections cover the whole list',
+    async () => {
+      const user = userEvent.setup();
+      // 45 securities: top 35 + bottom 5 leaves only 5 in the middle.
+      render(
+        <AllocationList
+          viewMode={{ kind: 'securities' }}
+          allocations={makeManyAllocations(45)}
+          tagBreakdown={[]}
+        />,
+      );
+
+      // One top expansion (35 -> 45) plus the bottom 5 covers all 45.
+      await user.click(screen.getByTestId('show-more-top'));
+
+      expect(
+        screen.queryByTestId('show-more-top'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('show-more-bottom'),
+      ).not.toBeInTheDocument();
+      // Every ticker is now visible.
+      expect(screen.getByText('TICK036')).toBeInTheDocument();
+      expect(screen.getByText('TICK045')).toBeInTheDocument();
     },
   );
 

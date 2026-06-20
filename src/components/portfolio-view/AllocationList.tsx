@@ -8,6 +8,7 @@ import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import Popover from '@mui/material/Popover';
 import type { FlattenedAllocation } from '../../domain/types';
 import type { TagBreakdownEntry } from '../../domain/types';
@@ -18,6 +19,14 @@ import {
   formatDollars,
   formatShares,
 } from '../../utils/format';
+
+// When more than this many securities are visible, the list is split into
+// a top and bottom section with a collapsed (hidden) middle, each expandable.
+const SPLIT_THRESHOLD = 40;
+const INITIAL_TOP_COUNT = 35;
+const INITIAL_BOTTOM_COUNT = 5;
+const EXPAND_STEP = 10;
+const COLUMN_COUNT = 4;
 
 interface AllocationListProps {
   readonly viewMode: ViewMode;
@@ -34,6 +43,8 @@ export function AllocationList({
     useState<HTMLElement | null>(null);
   const [selectedAllocation, setSelectedAllocation] =
     useState<FlattenedAllocation | null>(null);
+  const [topCount, setTopCount] = useState(INITIAL_TOP_COUNT);
+  const [bottomCount, setBottomCount] = useState(INITIAL_BOTTOM_COUNT);
 
   const filtered = useMemo(
     () => filterSmallAllocations(allocations),
@@ -54,6 +65,35 @@ export function AllocationList({
       .reduce((sum, a) => sum + a.percentage, 0),
     [allocations],
   );
+
+  const split = useMemo(() => {
+    const visible = filtered.visible;
+    const total = visible.length;
+    const collapsed = total > SPLIT_THRESHOLD
+      && topCount + bottomCount < total;
+
+    if (!collapsed) {
+      return {
+        topRows: visible,
+        bottomRows: [] as readonly FlattenedAllocation[],
+        showExpanders: false,
+      };
+    }
+
+    return {
+      topRows: visible.slice(0, topCount),
+      bottomRows: visible.slice(total - bottomCount),
+      showExpanders: true,
+    };
+  }, [filtered.visible, topCount, bottomCount]);
+
+  const handleShowMoreTop = () => {
+    setTopCount((count) => count + EXPAND_STEP);
+  };
+
+  const handleShowMoreBottom = () => {
+    setBottomCount((count) => count + EXPAND_STEP);
+  };
 
   const handleRowClick = (
     event: React.MouseEvent<HTMLTableRowElement>,
@@ -105,6 +145,53 @@ export function AllocationList({
     )
     : 0;
 
+  const renderAllocationRow = (a: FlattenedAllocation) => (
+    <TableRow
+      key={a.ticker}
+      hover={a.components.length > 0}
+      onClick={(e) => handleRowClick(e, a)}
+      sx={a.components.length > 0
+        ? { cursor: 'pointer' }
+        : undefined
+      }
+    >
+      <TableCell>{a.ticker}</TableCell>
+      <TableCell align="right">
+        {a.isUnknown || a.price === null
+          ? '-'
+          : formatShares(
+            a.totalValueCents / a.price,
+          )}
+      </TableCell>
+      <TableCell align="right">
+        {formatDollars(a.totalValueCents)}
+      </TableCell>
+      <TableCell align="right">
+        {formatPercentage(a.percentage)}
+      </TableCell>
+    </TableRow>
+  );
+
+  const renderExpanderRow = (
+    label: string,
+    onClick: () => void,
+    testId: string,
+  ) => (
+    <TableRow>
+      <TableCell colSpan={COLUMN_COUNT} sx={{ py: 0.5 }}>
+        <Button
+          size="small"
+          onClick={onClick}
+          data-testid={testId}
+        >
+          {label}
+        </Button>
+      </TableCell>
+    </TableRow>
+  );
+
+  const showMoreLabel = `Show ${EXPAND_STEP} more`;
+
   return (
     <>
       <TableContainer component={Paper} variant="outlined">
@@ -118,32 +205,18 @@ export function AllocationList({
             </TableRow>
           </TableHead>
           <TableBody>
-            {filtered.visible.map((a) => (
-              <TableRow
-                key={a.ticker}
-                hover={a.components.length > 0}
-                onClick={(e) => handleRowClick(e, a)}
-                sx={a.components.length > 0
-                  ? { cursor: 'pointer' }
-                  : undefined
-                }
-              >
-                <TableCell>{a.ticker}</TableCell>
-                <TableCell align="right">
-                  {a.isUnknown || a.price === null
-                    ? '-'
-                    : formatShares(
-                      a.totalValueCents / a.price,
-                    )}
-                </TableCell>
-                <TableCell align="right">
-                  {formatDollars(a.totalValueCents)}
-                </TableCell>
-                <TableCell align="right">
-                  {formatPercentage(a.percentage)}
-                </TableCell>
-              </TableRow>
-            ))}
+            {split.topRows.map(renderAllocationRow)}
+            {split.showExpanders && renderExpanderRow(
+              showMoreLabel,
+              handleShowMoreTop,
+              'show-more-top',
+            )}
+            {split.showExpanders && renderExpanderRow(
+              showMoreLabel,
+              handleShowMoreBottom,
+              'show-more-bottom',
+            )}
+            {split.bottomRows.map(renderAllocationRow)}
             {filtered.hiddenCount > 0 && (
               <TableRow>
                 <TableCell>

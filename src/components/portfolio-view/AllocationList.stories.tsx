@@ -55,6 +55,35 @@ const SAMPLE_ALLOCATIONS: FlattenedAllocation[] = [
   },
 ];
 
+function makeManyAllocations(
+  count: number,
+): FlattenedAllocation[] {
+  // Descending weights so percentages roughly sum to 1, mirroring the
+  // real (sorted-by-percentage) ordering from the aggregation layer.
+  const weights = Array.from(
+    { length: count },
+    (_, i) => count - i,
+  );
+  const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+
+  return weights.map((weight, i) => {
+    const percentage = weight / totalWeight;
+    const totalValueCents = weight * 10000;
+    return {
+      ticker: `TICK${String(i + 1).padStart(3, '0')}`,
+      shareCount: weight,
+      valueCentsFromComponents: 0,
+      totalValueCents,
+      percentage,
+      price: 10000,
+      tags: [],
+      tagsLoaded: true,
+      components: [],
+      isUnknown: false,
+    };
+  });
+}
+
 const meta: Meta<typeof AllocationList> = {
   title: 'PortfolioView/AllocationList',
   component: AllocationList,
@@ -150,6 +179,14 @@ export const WithTinyAllocations: Story = {
         isUnknown: false,
       },
     ],
+    tagBreakdown: [],
+  },
+};
+
+export const ManyTickers: Story = {
+  args: {
+    viewMode: { kind: 'securities' },
+    allocations: makeManyAllocations(100),
     tagBreakdown: [],
   },
 };
