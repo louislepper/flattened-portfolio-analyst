@@ -8,12 +8,14 @@ import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
+import ButtonBase from '@mui/material/ButtonBase';
 import Popover from '@mui/material/Popover';
+import type { SxProps, Theme } from '@mui/material/styles';
 import type { FlattenedAllocation } from '../../domain/types';
 import type { TagBreakdownEntry } from '../../domain/types';
 import type { ViewMode } from '../../domain/types';
 import { filterSmallAllocations } from '../../domain/display-filter';
+import { designColors } from '../../theme/theme';
 import {
   formatPercentage,
   formatDollars,
@@ -27,6 +29,56 @@ const INITIAL_TOP_COUNT = 35;
 const INITIAL_BOTTOM_COUNT = 5;
 const EXPAND_STEP = 10;
 const COLUMN_COUNT = 4;
+
+const cardSx: SxProps<Theme> = {
+  border: `1px solid ${designColors.cardBorder}`,
+  borderRadius: '10px',
+  overflow: 'hidden',
+  boxShadow: '0 1px 2px rgba(20,20,15,0.04)',
+  backgroundColor: designColors.surface,
+};
+
+const headerCellSx: SxProps<Theme> = {
+  fontSize: 11,
+  fontWeight: 600,
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+  color: designColors.headerLabel,
+  borderBottom: `1px solid ${designColors.sectionBorder}`,
+  py: '13px',
+  px: 3,
+};
+
+const tickerCellSx: SxProps<Theme> = {
+  fontSize: 14,
+  fontWeight: 500,
+  color: designColors.textPrimary,
+  borderBottom: `1px solid ${designColors.rowBorder}`,
+  py: '12px',
+  px: 3,
+};
+
+const numCellSx: SxProps<Theme> = {
+  fontSize: 14,
+  color: designColors.textBody,
+  fontVariantNumeric: 'tabular-nums',
+  borderBottom: `1px solid ${designColors.rowBorder}`,
+  py: '12px',
+  px: 3,
+};
+
+const expanderButtonSx: SxProps<Theme> = {
+  flex: 1,
+  display: 'flex',
+  alignItems: 'center',
+  gap: 1,
+  py: '9px',
+  px: 2,
+  fontSize: 13,
+  fontWeight: 500,
+  color: designColors.accentText,
+  '&:hover': { color: designColors.accentTextHover },
+};
 
 interface AllocationListProps {
   readonly viewMode: ViewMode;
@@ -77,13 +129,23 @@ export function AllocationList({
         topRows: visible,
         bottomRows: [] as readonly FlattenedAllocation[],
         showExpanders: false,
+        total,
+        shownCount: total,
+        hiddenCount: 0,
       };
     }
 
+    const topRows = visible.slice(0, topCount);
+    const bottomRows = visible.slice(total - bottomCount);
+    const shownCount = topRows.length + bottomRows.length;
+
     return {
-      topRows: visible.slice(0, topCount),
-      bottomRows: visible.slice(total - bottomCount),
+      topRows,
+      bottomRows,
       showExpanders: true,
+      total,
+      shownCount,
+      hiddenCount: total - shownCount,
     };
   }, [filtered.visible, topCount, bottomCount]);
 
@@ -111,23 +173,31 @@ export function AllocationList({
 
   if (viewMode.kind === 'tag') {
     return (
-      <TableContainer component={Paper} variant="outlined">
+      <TableContainer component={Paper} elevation={0} sx={cardSx}>
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell>{viewMode.tagName}</TableCell>
-              <TableCell align="right">Value</TableCell>
-              <TableCell align="right">%</TableCell>
+              <TableCell sx={headerCellSx}>
+                {viewMode.tagName}
+              </TableCell>
+              <TableCell sx={headerCellSx} align="right">
+                Value
+              </TableCell>
+              <TableCell sx={headerCellSx} align="right">
+                Weight
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {tagBreakdown.map((entry) => (
               <TableRow key={entry.tagValue}>
-                <TableCell>{entry.tagValue}</TableCell>
-                <TableCell align="right">
+                <TableCell sx={tickerCellSx}>
+                  {entry.tagValue}
+                </TableCell>
+                <TableCell sx={numCellSx} align="right">
                   {formatDollars(entry.totalValueCents)}
                 </TableCell>
-                <TableCell align="right">
+                <TableCell sx={numCellSx} align="right">
                   {formatPercentage(entry.percentage)}
                 </TableCell>
               </TableRow>
@@ -145,94 +215,181 @@ export function AllocationList({
     )
     : 0;
 
-  const renderAllocationRow = (a: FlattenedAllocation) => (
-    <TableRow
-      key={a.ticker}
-      hover={a.components.length > 0}
-      onClick={(e) => handleRowClick(e, a)}
-      sx={a.components.length > 0
-        ? { cursor: 'pointer' }
-        : undefined
-      }
-    >
-      <TableCell>{a.ticker}</TableCell>
-      <TableCell align="right">
-        {a.isUnknown || a.price === null
-          ? '-'
-          : formatShares(
-            a.totalValueCents / a.price,
-          )}
-      </TableCell>
-      <TableCell align="right">
-        {formatDollars(a.totalValueCents)}
-      </TableCell>
-      <TableCell align="right">
-        {formatPercentage(a.percentage)}
-      </TableCell>
-    </TableRow>
-  );
+  const visibleLabel =
+    `Showing ${split.shownCount} of ${split.total}`;
+  const hiddenLabel = `${split.hiddenCount} holdings hidden`;
 
-  const renderExpanderRow = (
-    label: string,
-    onClick: () => void,
-    testId: string,
-  ) => (
+  const renderAllocationRow = (a: FlattenedAllocation) => {
+    const clickable = a.components.length > 0;
+    return (
+      <TableRow
+        key={a.ticker}
+        onClick={(e) => handleRowClick(e, a)}
+        sx={{
+          '&:hover': { backgroundColor: designColors.surfaceMuted },
+          ...(clickable ? { cursor: 'pointer' } : {}),
+        }}
+      >
+        <TableCell sx={tickerCellSx}>{a.ticker}</TableCell>
+        <TableCell sx={numCellSx} align="right">
+          {a.isUnknown || a.price === null
+            ? '-'
+            : formatShares(a.totalValueCents / a.price)}
+        </TableCell>
+        <TableCell sx={numCellSx} align="right">
+          {formatDollars(a.totalValueCents)}
+        </TableCell>
+        <TableCell sx={numCellSx} align="right">
+          {formatPercentage(a.percentage)}
+        </TableCell>
+      </TableRow>
+    );
+  };
+
+  const expanderBand = (
     <TableRow>
-      <TableCell colSpan={COLUMN_COUNT} sx={{ py: 0.5 }}>
-        <Button
-          size="small"
-          onClick={onClick}
-          data-testid={testId}
+      <TableCell
+        colSpan={COLUMN_COUNT}
+        sx={{
+          p: 0,
+          backgroundColor: designColors.surfaceMuted,
+          borderTop: `1px solid ${designColors.sectionBorder}`,
+          borderBottom: `1px solid ${designColors.sectionBorder}`,
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'stretch',
+            justifyContent: 'center',
+            py: '10px',
+            px: 3,
+          }}
         >
-          {label}
-        </Button>
+          <ButtonBase
+            data-testid="show-more-top"
+            onClick={handleShowMoreTop}
+            sx={{ ...expanderButtonSx, justifyContent: 'flex-end' }}
+          >
+            <span>Show {EXPAND_STEP} more from top</span>
+            <span style={{ fontSize: 15, lineHeight: 1 }}>↓</span>
+          </ButtonBase>
+
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.25,
+              px: 3,
+              color: designColors.textMuted,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <span style={{ fontSize: 13 }}>•••</span>
+            <Box
+              component="span"
+              sx={{
+                fontSize: '12.5px',
+                fontWeight: 600,
+                color: designColors.textSecondary,
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {hiddenLabel}
+            </Box>
+            <span style={{ fontSize: 13 }}>•••</span>
+          </Box>
+
+          <ButtonBase
+            data-testid="show-more-bottom"
+            onClick={handleShowMoreBottom}
+            sx={{ ...expanderButtonSx, justifyContent: 'flex-start' }}
+          >
+            <span style={{ fontSize: 15, lineHeight: 1 }}>↑</span>
+            <span>Show {EXPAND_STEP} more from bottom</span>
+          </ButtonBase>
+        </Box>
       </TableCell>
     </TableRow>
   );
-
-  const showMoreLabel = `Show ${EXPAND_STEP} more`;
 
   return (
     <>
-      <TableContainer component={Paper} variant="outlined">
-        <Table size="small">
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'baseline',
+          justifyContent: 'space-between',
+          mb: 2,
+          px: '4px',
+        }}
+      >
+        <Typography
+          component="h2"
+          sx={{
+            fontSize: 18,
+            fontWeight: 600,
+            color: designColors.textPrimary,
+            letterSpacing: '-0.01em',
+          }}
+        >
+          Holdings
+        </Typography>
+        <Typography
+          sx={{
+            fontSize: 13,
+            color: designColors.textSecondary,
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >
+          {visibleLabel}
+        </Typography>
+      </Box>
+
+      <TableContainer component={Paper} elevation={0} sx={cardSx}>
+        <Table size="small" sx={{ tableLayout: 'fixed' }}>
           <TableHead>
             <TableRow>
-              <TableCell>Ticker</TableCell>
-              <TableCell align="right">Shares</TableCell>
-              <TableCell align="right">Value</TableCell>
-              <TableCell align="right">%</TableCell>
+              <TableCell sx={{ ...headerCellSx, width: '22%' }}>
+                Ticker
+              </TableCell>
+              <TableCell
+                sx={{ ...headerCellSx, width: '22%' }}
+                align="right"
+              >
+                Shares
+              </TableCell>
+              <TableCell
+                sx={{ ...headerCellSx, width: '26%' }}
+                align="right"
+              >
+                Value
+              </TableCell>
+              <TableCell
+                sx={{ ...headerCellSx, width: '30%' }}
+                align="right"
+              >
+                Weight
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {split.topRows.map(renderAllocationRow)}
-            {split.showExpanders && renderExpanderRow(
-              showMoreLabel,
-              handleShowMoreTop,
-              'show-more-top',
-            )}
-            {split.showExpanders && renderExpanderRow(
-              showMoreLabel,
-              handleShowMoreBottom,
-              'show-more-bottom',
-            )}
+            {split.showExpanders && expanderBand}
             {split.bottomRows.map(renderAllocationRow)}
             {filtered.hiddenCount > 0 && (
               <TableRow>
-                <TableCell>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                  >
-                    Everything else
-                    ({filtered.hiddenCount} securities)
-                  </Typography>
+                <TableCell
+                  sx={{ ...tickerCellSx, color: designColors.textSecondary }}
+                >
+                  Everything else
+                  ({filtered.hiddenCount} securities)
                 </TableCell>
-                <TableCell align="right">-</TableCell>
-                <TableCell align="right">
+                <TableCell sx={numCellSx} align="right">-</TableCell>
+                <TableCell sx={numCellSx} align="right">
                   {formatDollars(filtered.hiddenValueCents)}
                 </TableCell>
-                <TableCell align="right">
+                <TableCell sx={numCellSx} align="right">
                   {formatPercentage(filtered.hiddenPercentage)}
                 </TableCell>
               </TableRow>
@@ -240,6 +397,17 @@ export function AllocationList({
           </TableBody>
         </Table>
       </TableContainer>
+
+      <Box
+        sx={{
+          mt: '14px',
+          px: '4px',
+          fontSize: '12.5px',
+          color: designColors.textMuted,
+        }}
+      >
+        Sorted by weight, descending.
+      </Box>
 
       <Box sx={{ mt: 1 }}>
         <Typography

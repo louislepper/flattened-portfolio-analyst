@@ -425,6 +425,45 @@ describe('AllocationList', () => {
   );
 
   it(
+    'shows the Holdings header and the shown/total count',
+    () => {
+      render(
+        <AllocationList
+          viewMode={{ kind: 'securities' }}
+          allocations={makeManyAllocations(100)}
+          tagBreakdown={[]}
+        />,
+      );
+
+      expect(
+        screen.getByRole('heading', { name: 'Holdings' }),
+      ).toBeInTheDocument();
+      // 35 top + 5 bottom shown out of 100
+      expect(
+        screen.getByText('Showing 40 of 100'),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it(
+    'shows the hidden-count label in the expander band',
+    () => {
+      render(
+        <AllocationList
+          viewMode={{ kind: 'securities' }}
+          allocations={makeManyAllocations(100)}
+          tagBreakdown={[]}
+        />,
+      );
+
+      // 100 total - 35 top - 5 bottom = 60 hidden in the middle
+      expect(
+        screen.getByText('60 holdings hidden'),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it(
     'splits into top 35 and bottom 5 with two expanders '
     + 'when over the threshold',
     () => {
