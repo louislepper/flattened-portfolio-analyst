@@ -8,6 +8,6 @@ initializeApp();
 const finnhubApiKey = defineSecret("FINNHUB_API_KEY");
 
 export const api = onRequest(
-  { secrets: [finnhubApiKey] },
+  { secrets: [finnhubApiKey], maxInstances: 10 },
   handler
 );

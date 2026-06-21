@@ -112,6 +112,9 @@ describe("handler", () => {
     await handler(req as any, res as any);
 
     expect(res.statusCode).toBe(404);
+    expect(res.headers["Cache-Control"]).toBe(
+      "public, max-age=345600"
+    );
     expect(res.body).toEqual({
       error: "NOT_FOUND",
       message: "Security not found",
@@ -129,6 +132,7 @@ describe("handler", () => {
     await handler(req as any, res as any);
 
     expect(res.statusCode).toBe(500);
+    expect(res.headers["Cache-Control"]).toBe("no-store");
     expect(res.body).toEqual({
       error: "INTERNAL_ERROR",
       message: "An unexpected error occurred",
@@ -143,6 +147,9 @@ describe("handler", () => {
     await handler(req as any, res as any);
 
     expect(res.statusCode).toBe(405);
+    expect(res.headers["Cache-Control"]).toBe(
+      "public, max-age=259200"
+    );
     expect(res.body).toEqual({
       error: "METHOD_NOT_ALLOWED",
       message: "Only GET requests are supported",
@@ -159,10 +166,31 @@ describe("handler", () => {
     await handler(req as any, res as any);
 
     expect(res.statusCode).toBe(400);
+    expect(res.headers["Cache-Control"]).toBe(
+      "public, max-age=259200"
+    );
     expect(res.body).toEqual({
       error: "BAD_REQUEST",
       message: "Invalid ticker format",
     });
+  });
+
+  it("returns 400 and skips Firestore for requests with query params", async () => {
+    const req = createMockRequest({ query: { x: "1" } });
+    const res = createMockResponse();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await handler(req as any, res as any);
+
+    expect(res.statusCode).toBe(400);
+    expect(res.headers["Cache-Control"]).toBe(
+      "public, max-age=259200"
+    );
+    expect(res.body).toEqual({
+      error: "BAD_REQUEST",
+      message: "Query parameters are not supported",
+    });
+    expect(mockGetSecurityDoc).not.toHaveBeenCalled();
   });
 
   it("uppercases the ticker before Firestore lookup", async () => {
@@ -280,7 +308,7 @@ describe("handler", () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.headers["Cache-Control"]).toBe(
-        "public, max-age=60"
+        "public, max-age=259200"
       );
     }
   );
