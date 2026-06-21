@@ -33,6 +33,10 @@ storybook-static
 etf-holdings-cache/
 *-cache.json
 
+# ETF data and one-off data scripts (not for open source)
+etf-data/
+etf-data-scripts/
+
 # Firebase
 functions/dist
 functions/node_modules

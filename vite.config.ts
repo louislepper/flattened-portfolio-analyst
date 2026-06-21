@@ -10,8 +10,22 @@ const dirname = typeof __dirname !== 'undefined'
   ? __dirname
   : path.dirname(fileURLToPath(import.meta.url));
 
+// In dev, /api is proxied to the deployed backend so the app can run against
+// real data (set VITE_USE_REMOTE_API=true to also disable the MSW mocks).
+// Override the target with VITE_API_PROXY_TARGET if needed.
+const API_PROXY_TARGET = process.env.VITE_API_PROXY_TARGET
+  ?? 'https://flattened-portfolio-analyst.web.app';
+
 export default defineConfig({
   plugins: [react()],
+  server: {
+    proxy: {
+      '/api': {
+        target: API_PROXY_TARGET,
+        changeOrigin: true,
+      },
+    },
+  },
   test: {
     projects: [
       {
