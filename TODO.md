@@ -55,7 +55,26 @@ defense-in-depth.
   - **Test:** update the partial-ETF case in `handler.test.ts` to expect the new
     `max-age`. `cd functions && npm test`.
 
-- [ ] **Add Firebase App Check (reCAPTCHA v3)** — register site, init on client, verify token in handler
+- [x] **Add Firebase App Check (reCAPTCHA v3)** — register site, init on client, verify token in handler
+  - **Implemented (code):** client init in `src/api/appCheck.ts` (dynamic-imported
+    `firebase`, so it's code-split and tree-shaken out entirely when the
+    `VITE_FIREBASE_*` / `VITE_RECAPTCHA_SITE_KEY` build vars are absent), wired
+    into `src/main.tsx` `bootstrap()` and the `X-Firebase-AppCheck` header into
+    `src/api/client.ts`. Server verifies in `functions/src/handler.ts` via
+    `getAppCheck().verifyToken`, gated by the `APP_CHECK_ENFORCED` env flag so
+    the verifying code ships **before** rejection is turned on (monitor → enforce).
+  - **Deviation from the suggestion above:** the 401 is returned with
+    `Cache-Control: no-store`, **not** a long-cached header. Firebase's CDN keys
+    by URL and does not vary on the App Check header, so a cached 401 from a
+    tokenless request would be served to legitimate token-bearing users for the
+    same ticker. The 401 is placed after ticker validation and before the
+    Firestore read, so it still saves the read cost for invalid tokens.
+  - **Remaining manual steps (not codeable here — need the Firebase console):**
+    1. Register the web app + reCAPTCHA v3 provider under App Check; copy the web
+       config + site key into `.env` (see `.env.example`) for the production build.
+    2. Deploy the client so it starts sending tokens.
+    3. Watch App Check metrics in "unenforced" mode, then set `APP_CHECK_ENFORCED=true`
+       on the `api` function (and enable enforcement in the console) once verified.
   - **Why:** Gates the API to traffic from the real frontend, the single biggest
     reducer of junk traffic. Verifying the token lets the handler reject before the
     Firestore read / Finnhub call — **but the function is still invoked** to do the

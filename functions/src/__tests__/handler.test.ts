@@ -4,6 +4,7 @@ import type { SecurityDoc } from "../types.js";
 const mockGetSecurityDoc = vi.fn();
 const mockUpdateSecurityPrice = vi.fn();
 const mockFetchQuote = vi.fn();
+const mockVerifyToken = vi.fn();
 
 vi.mock("../firestore.js", () => ({
   getSecurityDoc: mockGetSecurityDoc,
@@ -14,14 +15,20 @@ vi.mock("../finnhub.js", () => ({
   fetchQuote: mockFetchQuote,
 }));
 
+vi.mock("firebase-admin/app-check", () => ({
+  getAppCheck: () => ({ verifyToken: mockVerifyToken }),
+}));
+
 const { handler } = await import("../handler.js");
 
 function createMockRequest(
   overrides: Record<string, unknown> = {}
 ): Record<string, unknown> {
+  const headers = (overrides.headers as Record<string, string>) ?? {};
   return {
     method: "GET",
     path: "/api/v1/securities/GOOG",
+    header: (name: string) => headers[name.toLowerCase()],
     ...overrides,
   };
 }
@@ -76,6 +83,7 @@ describe("handler", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     delete process.env.FINNHUB_API_KEY;
+    delete process.env.APP_CHECK_ENFORCED;
   });
 
   it("returns 200 with correct JSON and Cache-Control header", async () => {
@@ -351,4 +359,72 @@ describe("handler", () => {
       );
     }
   );
+
+  describe("App Check enforcement", () => {
+    it("does not verify or reject when enforcement is disabled", async () => {
+      mockGetSecurityDoc.mockResolvedValue(stockDoc);
+      const req = createMockRequest();
+      const res = createMockResponse();
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await handler(req as any, res as any);
+
+      expect(res.statusCode).toBe(200);
+      expect(mockVerifyToken).not.toHaveBeenCalled();
+    });
+
+    it("returns 401 and skips Firestore when token is missing", async () => {
+      process.env.APP_CHECK_ENFORCED = "true";
+      const req = createMockRequest();
+      const res = createMockResponse();
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await handler(req as any, res as any);
+
+      expect(res.statusCode).toBe(401);
+      expect(res.headers["Cache-Control"]).toBe("no-store");
+      expect(res.body).toEqual({
+        error: "UNAUTHORIZED",
+        message: "Missing or invalid App Check token",
+      });
+      expect(mockVerifyToken).not.toHaveBeenCalled();
+      expect(mockGetSecurityDoc).not.toHaveBeenCalled();
+    });
+
+    it("returns 401 and skips Firestore when token is invalid", async () => {
+      process.env.APP_CHECK_ENFORCED = "true";
+      mockVerifyToken.mockRejectedValue(new Error("invalid token"));
+      const req = createMockRequest({
+        headers: { "x-firebase-appcheck": "bad-token" },
+      });
+      const res = createMockResponse();
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await handler(req as any, res as any);
+
+      expect(res.statusCode).toBe(401);
+      expect(res.headers["Cache-Control"]).toBe("no-store");
+      expect(mockVerifyToken).toHaveBeenCalledWith("bad-token");
+      expect(mockGetSecurityDoc).not.toHaveBeenCalled();
+    });
+
+    it("serves the security when token is valid", async () => {
+      process.env.APP_CHECK_ENFORCED = "true";
+      mockVerifyToken.mockResolvedValue({ appId: "test-app" });
+      mockGetSecurityDoc.mockResolvedValue(stockDoc);
+      const req = createMockRequest({
+        headers: { "x-firebase-appcheck": "good-token" },
+      });
+      const res = createMockResponse();
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await handler(req as any, res as any);
+
+      expect(mockVerifyToken).toHaveBeenCalledWith("good-token");
+      expect(res.statusCode).toBe(200);
+      expect(res.headers["Cache-Control"]).toBe(
+        "public, max-age=604800"
+      );
+    });
+  });
 });

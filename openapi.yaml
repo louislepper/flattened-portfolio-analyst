@@ -25,6 +25,15 @@ paths:
             type: string
           description: The stock or ETF ticker symbol
           example: GOOG
+        - name: X-Firebase-AppCheck
+          in: header
+          required: false
+          schema:
+            type: string
+          description: >
+            Firebase App Check (reCAPTCHA v3) token identifying the request as
+            coming from the real frontend. Only verified when the backend has
+            App Check enforcement enabled; rejected requests receive a 401.
       responses:
         "200":
           description: Security data retrieved successfully
@@ -32,6 +41,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SecurityResponse"
+        "401":
+          description: Missing or invalid App Check token (when enforcement is enabled)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Security not found
           content:
