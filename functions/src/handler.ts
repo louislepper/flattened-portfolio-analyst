@@ -1,9 +1,11 @@
 import type { Request } from "firebase-functions/v2/https";
 import type { Response } from "express";
+import { logger } from "firebase-functions";
 import { getAppCheck } from "firebase-admin/app-check";
 import { getSecurityDoc, updateSecurityPrice } from "./firestore.js";
 import { mapSecurityDocToResponse } from "./mapper.js";
 import { fetchQuote } from "./finnhub.js";
+import { getAppCheckMode } from "./launchdarkly.js";
 
 const TICKER_PATTERN = /^[A-Z0-9._-]+$/;
 const APP_CHECK_HEADER = "x-firebase-appcheck";
@@ -16,15 +18,11 @@ const PARTIAL_ETF_THRESHOLD = 0.95;
 const STALENESS_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const PATH_PREFIX = "/api/v1/securities/";
 
-// App Check gates the API to traffic from the real frontend. Enforcement is
-// behind an env flag so the verifying code can ship and the client can start
-// sending tokens before invalid requests are actually rejected (roll out in
-// monitor mode, then flip the flag). Verifying still requires a function
-// invocation — it only saves the downstream Firestore read / Finnhub call.
-function isAppCheckEnforced(): boolean {
-  return process.env.APP_CHECK_ENFORCED === "true";
-}
-
+// App Check gates the API to traffic from the real frontend. The off/monitor/
+// enforce mode comes from a LaunchDarkly flag (see ./launchdarkly.ts), so it can
+// be rolled out without a redeploy and fails closed to "enforce". Verifying
+// still requires a function invocation — it only saves the downstream Firestore
+// read / Finnhub call.
 async function hasValidAppCheckToken(req: Request): Promise<boolean> {
   const token = req.header(APP_CHECK_HEADER);
   if (!token) {
@@ -93,16 +91,24 @@ export async function handler(
     return;
   }
 
-  if (isAppCheckEnforced() && !(await hasValidAppCheckToken(req))) {
-    // Not publicly cacheable: the CDN keys by URL and does not vary on the
-    // App Check header, so a cached 401 from a tokenless request would be
-    // served to legitimate token-bearing users for the same ticker.
-    res.set("Cache-Control", CACHE_CONTROL_NO_STORE);
-    res.status(401).json({
-      error: "UNAUTHORIZED",
-      message: "Missing or invalid App Check token",
-    });
-    return;
+  const appCheckMode = await getAppCheckMode();
+  if (appCheckMode !== "off") {
+    const tokenValid = await hasValidAppCheckToken(req);
+    if (appCheckMode === "monitor") {
+      // Observe without rejecting: confirms real traffic carries valid tokens
+      // before enforcement is turned on. tokenValid is low-cardinality.
+      logger.info("App Check monitor", { tokenValid });
+    } else if (!tokenValid) {
+      // enforce. Not publicly cacheable: the CDN keys by URL and does not vary
+      // on the App Check header, so a cached 401 from a tokenless request would
+      // be served to legitimate token-bearing users for the same ticker.
+      res.set("Cache-Control", CACHE_CONTROL_NO_STORE);
+      res.status(401).json({
+        error: "UNAUTHORIZED",
+        message: "Missing or invalid App Check token",
+      });
+      return;
+    }
   }
 
   try {
