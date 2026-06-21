@@ -5,6 +5,7 @@ const mockGetSecurityDoc = vi.fn();
 const mockUpdateSecurityPrice = vi.fn();
 const mockFetchQuote = vi.fn();
 const mockVerifyToken = vi.fn();
+const mockGetAppCheckMode = vi.fn();
 
 vi.mock("../firestore.js", () => ({
   getSecurityDoc: mockGetSecurityDoc,
@@ -17,6 +18,10 @@ vi.mock("../finnhub.js", () => ({
 
 vi.mock("firebase-admin/app-check", () => ({
   getAppCheck: () => ({ verifyToken: mockVerifyToken }),
+}));
+
+vi.mock("../launchdarkly.js", () => ({
+  getAppCheckMode: mockGetAppCheckMode,
 }));
 
 const { handler } = await import("../handler.js");
@@ -83,7 +88,8 @@ describe("handler", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     delete process.env.FINNHUB_API_KEY;
-    delete process.env.APP_CHECK_ENFORCED;
+    // App Check off by default so non-App-Check tests are unaffected.
+    mockGetAppCheckMode.mockResolvedValue("off");
   });
 
   it("returns 200 with correct JSON and Cache-Control header", async () => {
@@ -360,8 +366,9 @@ describe("handler", () => {
     }
   );
 
-  describe("App Check enforcement", () => {
-    it("does not verify or reject when enforcement is disabled", async () => {
+  describe("App Check (LaunchDarkly-gated)", () => {
+    it("does not verify or reject in 'off' mode", async () => {
+      mockGetAppCheckMode.mockResolvedValue("off");
       mockGetSecurityDoc.mockResolvedValue(stockDoc);
       const req = createMockRequest();
       const res = createMockResponse();
@@ -373,8 +380,8 @@ describe("handler", () => {
       expect(mockVerifyToken).not.toHaveBeenCalled();
     });
 
-    it("returns 401 and skips Firestore when token is missing", async () => {
-      process.env.APP_CHECK_ENFORCED = "true";
+    it("returns 401 and skips Firestore when token is missing (enforce)", async () => {
+      mockGetAppCheckMode.mockResolvedValue("enforce");
       const req = createMockRequest();
       const res = createMockResponse();
 
@@ -391,8 +398,8 @@ describe("handler", () => {
       expect(mockGetSecurityDoc).not.toHaveBeenCalled();
     });
 
-    it("returns 401 and skips Firestore when token is invalid", async () => {
-      process.env.APP_CHECK_ENFORCED = "true";
+    it("returns 401 and skips Firestore when token is invalid (enforce)", async () => {
+      mockGetAppCheckMode.mockResolvedValue("enforce");
       mockVerifyToken.mockRejectedValue(new Error("invalid token"));
       const req = createMockRequest({
         headers: { "x-firebase-appcheck": "bad-token" },
@@ -408,8 +415,8 @@ describe("handler", () => {
       expect(mockGetSecurityDoc).not.toHaveBeenCalled();
     });
 
-    it("serves the security when token is valid", async () => {
-      process.env.APP_CHECK_ENFORCED = "true";
+    it("serves the security when token is valid (enforce)", async () => {
+      mockGetAppCheckMode.mockResolvedValue("enforce");
       mockVerifyToken.mockResolvedValue({ appId: "test-app" });
       mockGetSecurityDoc.mockResolvedValue(stockDoc);
       const req = createMockRequest({
@@ -425,6 +432,24 @@ describe("handler", () => {
       expect(res.headers["Cache-Control"]).toBe(
         "public, max-age=604800"
       );
+    });
+
+    it("verifies but does not reject an invalid token in 'monitor' mode", async () => {
+      mockGetAppCheckMode.mockResolvedValue("monitor");
+      mockVerifyToken.mockRejectedValue(new Error("invalid token"));
+      mockGetSecurityDoc.mockResolvedValue(stockDoc);
+      const req = createMockRequest({
+        headers: { "x-firebase-appcheck": "bad-token" },
+      });
+      const res = createMockResponse();
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await handler(req as any, res as any);
+
+      expect(mockVerifyToken).toHaveBeenCalledWith("bad-token");
+      // Not rejected: the request proceeds to Firestore and returns 200.
+      expect(mockGetSecurityDoc).toHaveBeenCalled();
+      expect(res.statusCode).toBe(200);
     });
   });
 });

@@ -6,8 +6,9 @@ import { handler } from "./handler.js";
 initializeApp();
 
 const finnhubApiKey = defineSecret("FINNHUB_API_KEY");
+const launchDarklySdkKey = defineSecret("LAUNCHDARKLY_SDK_KEY");
 
 export const api = onRequest(
-  { secrets: [finnhubApiKey], maxInstances: 10 },
+  { secrets: [finnhubApiKey, launchDarklySdkKey], maxInstances: 10 },
   handler
 );

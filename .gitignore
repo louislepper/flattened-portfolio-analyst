@@ -41,3 +41,8 @@ etf-data-scripts/
 functions/dist
 functions/node_modules
 .firebase
+
+# Installed agent skills (reinstall via `npx skills add`; tracked by skills-lock.json)
+.agents/
+.claude/skills/
+.claude/settings.local.json
