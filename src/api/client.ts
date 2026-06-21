@@ -1,5 +1,8 @@
 import { SECURITY_ENDPOINT } from './endpoints';
+import { getAppCheckToken } from './appCheck';
 import type { SecurityResponse } from './types';
+
+const APP_CHECK_HEADER = 'X-Firebase-AppCheck';
 
 export class ApiError extends Error {
   readonly status: number;
@@ -14,8 +17,12 @@ export class ApiError extends Error {
 export async function fetchSecurity(
   ticker: string,
 ): Promise<SecurityResponse> {
+  const token = await getAppCheckToken();
+  const headers = token ? { [APP_CHECK_HEADER]: token } : undefined;
+
   const response = await fetch(
     `${SECURITY_ENDPOINT}/${encodeURIComponent(ticker)}`,
+    { headers },
   );
 
   if (!response.ok) {
