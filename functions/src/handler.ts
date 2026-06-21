@@ -7,8 +7,8 @@ import { fetchQuote } from "./finnhub.js";
 const TICKER_PATTERN = /^[A-Z0-9._-]+$/;
 const CACHE_MAX_AGE_DEFAULT = 604800; // 1 week in seconds
 const CACHE_MAX_AGE_PARTIAL_ETF = 3 * 24 * 60 * 60; // 3 days in seconds
-const CACHE_MAX_AGE_NOT_FOUND = 3600; // 1 hour in seconds
-const CACHE_MAX_AGE_CLIENT_ERROR = 86400; // 1 day in seconds
+const CACHE_MAX_AGE_NOT_FOUND = 4 * 24 * 60 * 60; // 4 days in seconds
+const CACHE_MAX_AGE_CLIENT_ERROR = 3 * 24 * 60 * 60; // 3 days in seconds
 const CACHE_CONTROL_NO_STORE = "no-store";
 const PARTIAL_ETF_THRESHOLD = 0.95;
 const STALENESS_MS = 7 * 24 * 60 * 60 * 1000; // 7 days

@@ -113,7 +113,7 @@ describe("handler", () => {
 
     expect(res.statusCode).toBe(404);
     expect(res.headers["Cache-Control"]).toBe(
-      "public, max-age=3600"
+      "public, max-age=345600"
     );
     expect(res.body).toEqual({
       error: "NOT_FOUND",
@@ -148,7 +148,7 @@ describe("handler", () => {
 
     expect(res.statusCode).toBe(405);
     expect(res.headers["Cache-Control"]).toBe(
-      "public, max-age=86400"
+      "public, max-age=259200"
     );
     expect(res.body).toEqual({
       error: "METHOD_NOT_ALLOWED",
@@ -167,7 +167,7 @@ describe("handler", () => {
 
     expect(res.statusCode).toBe(400);
     expect(res.headers["Cache-Control"]).toBe(
-      "public, max-age=86400"
+      "public, max-age=259200"
     );
     expect(res.body).toEqual({
       error: "BAD_REQUEST",
@@ -184,7 +184,7 @@ describe("handler", () => {
 
     expect(res.statusCode).toBe(400);
     expect(res.headers["Cache-Control"]).toBe(
-      "public, max-age=86400"
+      "public, max-age=259200"
     );
     expect(res.body).toEqual({
       error: "BAD_REQUEST",
