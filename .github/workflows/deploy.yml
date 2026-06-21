@@ -51,6 +51,15 @@ jobs:
 
       - name: Build frontend
         run: npm run build
+        env:
+          # Public Firebase App Check config (safe in the client bundle).
+          # Set as repo Variables, not Secrets. Empty values build the app with
+          # App Check tree-shaken out, so this is safe before they're populated.
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
+          VITE_RECAPTCHA_SITE_KEY: ${{ vars.VITE_RECAPTCHA_SITE_KEY }}
 
       - name: Build functions
         run: npm run build
