@@ -6,7 +6,8 @@ import Button from '@mui/material/Button';
 import { usePortfolio } from '../../hooks/usePortfolio';
 import { useFlattenedAllocations } from '../../hooks/useFlattenedAllocations';
 import { useTagBreakdown } from '../../hooks/useTagBreakdown';
-import { TagSearchBar } from './TagSearchBar';
+import { TagDimensionToggle } from './TagDimensionToggle';
+import type { TagDimension } from './TagDimensionToggle';
 import { AllocationList } from './AllocationList';
 import { ConcentrationBar } from './ConcentrationBar';
 import { colors, fonts } from '../../theme/tokens';
@@ -23,6 +24,15 @@ const TABS: readonly TabItem[] = [
   { key: 'holdings', label: 'Holdings' },
   { key: 'tag', label: 'By tag' },
 ];
+
+const eyebrowSx = {
+  fontSize: 13,
+  fontWeight: 600,
+  letterSpacing: '0.04em',
+  textTransform: 'uppercase' as const,
+  color: '#9a9a8e',
+  mb: 0.75,
+};
 
 interface StalenessChipsProps {
   readonly priceAsOf: Date | null;
@@ -69,8 +79,56 @@ function StalenessChips({
           textAlign: 'right',
         }}
       >
-        Upload prices to refresh values. Fund composition is published
-        quarterly.
+        Upload prices to refresh values.
+      </Box>
+    </Box>
+  );
+}
+
+interface TagCompositionNoteProps {
+  readonly dimensionName: string;
+  readonly compositionAsOf: Date | null;
+}
+
+function TagCompositionNote({
+  dimensionName,
+  compositionAsOf,
+}: TagCompositionNoteProps) {
+  const compositionDate = formatDate(compositionAsOf);
+
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1.25,
+        p: '12px 16px',
+        bgcolor: colors.surfaceMuted,
+        border: '1px solid #efe9df',
+        borderRadius: '11px',
+        mb: 3.25,
+      }}
+    >
+      <Box
+        sx={{
+          width: 8,
+          height: 8,
+          borderRadius: '50%',
+          bgcolor: colors.neutralDot,
+          flex: 'none',
+        }}
+      />
+      <Box component="span" sx={{ fontSize: 13, color: '#5b5b52' }}>
+        {dimensionName} tags come from each fund's published holdings
+        {compositionDate ? (
+          <>
+            {' — '}
+            <Box component="strong" sx={{ color: '#3a3a32' }}>
+              composition as of {compositionDate}
+            </Box>
+          </>
+        ) : null}
+        . Funds report quarterly, so splits may lag recent moves.
       </Box>
     </Box>
   );
@@ -131,16 +189,30 @@ export function PortfolioView() {
     [state.securityData, state.compositeSecurityData],
   );
 
-  const firstTagOption = useMemo(() => {
+  const tagOptions = useMemo<TagDimension[]>(() => {
+    const seen = new Set<string>();
+    const options: TagDimension[] = [];
     for (const allocation of allocations) {
-      const tag = allocation.tags[0];
-      if (tag) return tag;
+      for (const tag of allocation.tags) {
+        if (!seen.has(tag.key)) {
+          seen.add(tag.key);
+          options.push({ key: tag.key, name: tag.name });
+        }
+      }
     }
-    return null;
+    return options;
   }, [allocations]);
 
   const activeTab: TabItem['key'] =
     state.viewMode.kind === 'tag' ? 'tag' : 'holdings';
+
+  const selectDimension = (dimension: TagDimension) => {
+    setViewMode({
+      kind: 'tag',
+      tagKey: dimension.key,
+      tagName: dimension.name,
+    });
+  };
 
   const handleTabClick = (key: TabItem['key']) => {
     if (key === 'holdings') {
@@ -148,15 +220,19 @@ export function PortfolioView() {
       return;
     }
     if (state.viewMode.kind === 'tag') return;
-    const next: ViewMode = firstTagOption
+    const next: ViewMode = tagOptions[0]
       ? {
         kind: 'tag',
-        tagKey: firstTagOption.key,
-        tagName: firstTagOption.name,
+        tagKey: tagOptions[0].key,
+        tagName: tagOptions[0].name,
       }
       : { kind: 'securities' };
     setViewMode(next);
   };
+
+  const selectedTagName = state.viewMode.kind === 'tag'
+    ? state.viewMode.tagName
+    : '';
 
   return (
     <Box
@@ -228,42 +304,52 @@ export function PortfolioView() {
             flexWrap: 'wrap',
           }}
         >
-          <Box>
-            <Typography
-              sx={{
-                fontSize: 13,
-                fontWeight: 600,
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase',
-                color: colors.inkFaint,
-                mb: 0.75,
-              }}
-            >
-              Your true exposure
-            </Typography>
-            <Typography
-              variant="h4"
-              sx={{ fontSize: 30, letterSpacing: '-0.01em' }}
-            >
-              Portfolio Allocation
-            </Typography>
-          </Box>
-          <Box sx={{ textAlign: 'right' }}>
-            <Typography
-              sx={{
-                fontFamily: fonts.serif,
-                fontSize: 28,
-                fontWeight: 600,
-                color: colors.ink,
-                fontVariantNumeric: 'tabular-nums',
-              }}
-            >
-              {formatDollars(totalValueCents)}
-            </Typography>
-            <Typography sx={{ fontSize: 13, color: colors.inkFaint }}>
-              {companyCount} companies across your funds
-            </Typography>
-          </Box>
+          {activeTab === 'holdings' ? (
+            <>
+              <Box>
+                <Typography sx={eyebrowSx}>Your true exposure</Typography>
+                <Typography
+                  variant="h4"
+                  sx={{ fontSize: 30, letterSpacing: '-0.01em' }}
+                >
+                  Portfolio Allocation
+                </Typography>
+              </Box>
+              <Box sx={{ textAlign: 'right' }}>
+                <Typography
+                  sx={{
+                    fontFamily: fonts.serif,
+                    fontSize: 28,
+                    fontWeight: 600,
+                    color: colors.ink,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {formatDollars(totalValueCents)}
+                </Typography>
+                <Typography sx={{ fontSize: 13, color: colors.inkFaint }}>
+                  {companyCount} companies across your funds
+                </Typography>
+              </Box>
+            </>
+          ) : (
+            <>
+              <Box>
+                <Typography sx={eyebrowSx}>Allocation</Typography>
+                <Typography
+                  variant="h4"
+                  sx={{ fontSize: 30, letterSpacing: '-0.01em' }}
+                >
+                  Grouped by {selectedTagName.toLowerCase()}
+                </Typography>
+              </Box>
+              <TagDimensionToggle
+                options={tagOptions}
+                selectedKey={tagKey}
+                onSelect={selectDimension}
+              />
+            </>
+          )}
         </Box>
 
         {state.failedTickers.length > 0 && (
@@ -273,13 +359,12 @@ export function PortfolioView() {
           </Alert>
         )}
 
-        <StalenessChips
-          priceAsOf={freshness.priceAsOf}
-          compositionAsOf={freshness.compositionAsOf}
-        />
-
         {activeTab === 'holdings' ? (
           <>
+            <StalenessChips
+              priceAsOf={freshness.priceAsOf}
+              compositionAsOf={freshness.compositionAsOf}
+            />
             <ConcentrationBar allocations={allocations} />
             <AllocationList
               viewMode={state.viewMode}
@@ -289,13 +374,10 @@ export function PortfolioView() {
           </>
         ) : (
           <>
-            <Box sx={{ mb: 3 }}>
-              <TagSearchBar
-                allocations={allocations}
-                viewMode={state.viewMode}
-                onViewModeChange={setViewMode}
-              />
-            </Box>
+            <TagCompositionNote
+              dimensionName={selectedTagName}
+              compositionAsOf={freshness.compositionAsOf}
+            />
             <AllocationList
               viewMode={state.viewMode}
               allocations={allocations}
