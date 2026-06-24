@@ -9,6 +9,7 @@ import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import Popover from '@mui/material/Popover';
+import Button from '@mui/material/Button';
 import type { FlattenedAllocation } from '../../domain/types';
 import type { TagBreakdownEntry } from '../../domain/types';
 import type { ViewMode } from '../../domain/types';
@@ -25,6 +26,9 @@ interface AllocationListProps {
   readonly allocations: readonly FlattenedAllocation[];
   readonly tagBreakdown: readonly TagBreakdownEntry[];
 }
+
+const DEFAULT_VISIBLE_ROWS = 12;
+const EXPAND_STEP = 10;
 
 const headCellSx = {
   fontFamily: fonts.sans,
@@ -71,6 +75,36 @@ export function AllocationList({
       .reduce((sum, a) => sum + a.percentage, 0),
     [allocations],
   );
+
+  const distinctCompanies = useMemo(
+    () => allocations.filter((a) => !a.isUnknown).length,
+    [allocations],
+  );
+
+  const [shownCount, setShownCount] = useState(DEFAULT_VISIBLE_ROWS);
+
+  const tail = useMemo(() => {
+    const shown = filtered.visible.slice(0, shownCount);
+    const overflow = filtered.visible.slice(shownCount);
+    const count = overflow.length + filtered.hiddenCount;
+    const valueCents =
+      overflow.reduce((sum, a) => sum + a.totalValueCents, 0)
+      + filtered.hiddenValueCents;
+    const percentage =
+      overflow.reduce((sum, a) => sum + a.percentage, 0)
+      + filtered.hiddenPercentage;
+    const threshold = shown.length > 0
+      ? shown[shown.length - 1].totalValueCents
+      : 0;
+    return {
+      shown,
+      count,
+      valueCents,
+      percentage,
+      threshold,
+      canExpand: overflow.length > 0,
+    };
+  }, [filtered, shownCount]);
 
   const handleRowClick = (
     event: React.MouseEvent<HTMLTableRowElement>,
@@ -194,7 +228,7 @@ export function AllocationList({
             </TableRow>
           </TableHead>
           <TableBody>
-            {filtered.visible.map((a) => (
+            {tail.shown.map((a) => (
               <TableRow
                 key={a.ticker}
                 hover={a.components.length > 0}
@@ -231,30 +265,114 @@ export function AllocationList({
                 </TableCell>
               </TableRow>
             ))}
-            {filtered.hiddenCount > 0 && (
-              <TableRow sx={{ bgcolor: colors.tailBg }}>
-                <TableCell>
-                  <Typography
-                    sx={{ fontSize: 14, fontWeight: 600, color: '#5b4a37' }}
+            {tail.count > 0 && (
+              <TableRow>
+                <TableCell colSpan={4} sx={{ p: 0, border: 'none' }}>
+                  <Box
+                    onClick={tail.canExpand
+                      ? () => setShownCount((c) => c + EXPAND_STEP)
+                      : undefined}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 2,
+                      p: '16px 22px',
+                      bgcolor: colors.tailBg,
+                      borderTop: `1px solid ${colors.border}`,
+                      cursor: tail.canExpand ? 'pointer' : 'default',
+                      '&:hover': tail.canExpand
+                        ? { bgcolor: '#f2ede4' }
+                        : undefined,
+                    }}
                   >
-                    Everything else
-                  </Typography>
-                  <Typography sx={{ fontSize: 12, color: '#a89a86' }}>
-                    {filtered.hiddenCount} securities
-                  </Typography>
-                </TableCell>
-                <TableCell align="right" sx={numSx}>-</TableCell>
-                <TableCell
-                  align="right"
-                  sx={{ ...numSx, color: '#5b4a37', fontWeight: 600 }}
-                >
-                  {formatDollars(filtered.hiddenValueCents)}
-                </TableCell>
-                <TableCell
-                  align="right"
-                  sx={{ ...numSx, color: '#5b4a37', fontWeight: 600 }}
-                >
-                  {formatPercentage(filtered.hiddenPercentage)}
+                    <Box sx={{ flex: 1 }}>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'baseline',
+                          gap: 1,
+                        }}
+                      >
+                        <Box
+                          component="span"
+                          sx={{
+                            fontSize: 14,
+                            fontWeight: 600,
+                            color: '#5b4a37',
+                          }}
+                        >
+                          Everything else
+                        </Box>
+                        <Box
+                          component="span"
+                          sx={{
+                            fontSize: 12.5,
+                            color: '#9a8d7a',
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                        >
+                          {tail.count} securities
+                        </Box>
+                      </Box>
+                      <Box
+                        sx={{
+                          fontSize: 12,
+                          color: '#a89a86',
+                          mt: 0.375,
+                        }}
+                      >
+                        each company ≤{' '}
+                        <Box
+                          component="span"
+                          sx={{ fontVariantNumeric: 'tabular-nums' }}
+                        >
+                          {formatDollars(tail.threshold)}
+                        </Box>
+                        {' '}· smaller than every row above
+                      </Box>
+                    </Box>
+                    <Box sx={{ textAlign: 'right' }}>
+                      <Box
+                        sx={{
+                          ...numSx,
+                          fontWeight: 600,
+                          color: '#5b4a37',
+                        }}
+                      >
+                        {formatDollars(tail.valueCents)}
+                      </Box>
+                      <Box
+                        sx={{
+                          ...numSx,
+                          fontSize: 12.5,
+                          color: '#9a8d7a',
+                        }}
+                      >
+                        {formatPercentage(tail.percentage)}
+                      </Box>
+                    </Box>
+                    {tail.canExpand && (
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShownCount((c) => c + EXPAND_STEP);
+                        }}
+                        sx={{
+                          border: '1px solid #d8c8b2',
+                          borderRadius: '8px',
+                          bgcolor: colors.surface,
+                          color: colors.accentDeep,
+                          fontSize: 12.5,
+                          py: 1,
+                          px: 1.75,
+                          whiteSpace: 'nowrap',
+                          '&:hover': { bgcolor: '#faf6f0' },
+                        }}
+                      >
+                        Show {EXPAND_STEP} more ↓
+                      </Button>
+                    )}
+                  </Box>
                 </TableCell>
               </TableRow>
             )}
@@ -284,9 +402,15 @@ export function AllocationList({
               {formatDollars(totalValueCents)}
             </Typography>
           </Box>
-          <Box sx={{ flex: 1, p: '13px 22px' }}>
+          <Box
+            sx={{
+              flex: 1,
+              p: '13px 22px',
+              borderRight: '1px solid #f1f0ec',
+            }}
+          >
             <Typography sx={{ ...headCellSx, border: 'none', mb: 0.5 }}>
-              Undisclosed (ETF internals)
+              Distinct companies
             </Typography>
             <Typography
               sx={{
@@ -296,7 +420,22 @@ export function AllocationList({
                 color: '#1a1a18',
               }}
             >
-              {formatPercentage(unknownPercentage)}
+              {distinctCompanies.toLocaleString('en-US')}
+            </Typography>
+          </Box>
+          <Box sx={{ flex: 1, p: '13px 22px' }}>
+            <Typography sx={{ ...headCellSx, border: 'none', mb: 0.5 }}>
+              Allocated
+            </Typography>
+            <Typography
+              sx={{
+                ...numSx,
+                fontSize: 15,
+                fontWeight: 600,
+                color: '#1a1a18',
+              }}
+            >
+              {formatPercentage(1 - unknownPercentage)}
             </Typography>
           </Box>
         </Box>
