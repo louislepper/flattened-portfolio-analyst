@@ -2,9 +2,9 @@ import { useRef, type ChangeEvent } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
-import UploadFileIcon from '@mui/icons-material/UploadFile';
 import type { Holding } from '../../domain/types';
 import { parseCsvHoldings } from '../../domain/csv-parser';
+import { colors } from '../../theme/tokens';
 
 interface CsvImportProps {
   readonly onImport: (holdings: readonly Holding[]) => void;
@@ -45,14 +45,34 @@ export function CsvImport({ onImport }: CsvImportProps) {
         aria-label="Import CSV"
       />
       <Button
-        variant="outlined"
-        startIcon={<UploadFileIcon />}
+        fullWidth
         onClick={() => fileInputRef.current?.click()}
+        sx={{
+          height: 48,
+          border: `1.5px dashed ${colors.inputBorder}`,
+          borderRadius: '10px',
+          bgcolor: colors.surface,
+          color: colors.accentDeep,
+          gap: 1,
+          '&:hover': {
+            bgcolor: colors.surface,
+            borderColor: colors.accent,
+          },
+        }}
       >
+        <Box component="span" sx={{ fontSize: 16 }}>
+          ↑
+        </Box>
         Import CSV
       </Button>
-      <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
-        Format: SYMBOL,Quantity,Price(optional)
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        display="block"
+        sx={{ mt: 1, lineHeight: 1.5 }}
+      >
+        Format: SYMBOL, Quantity, Price — include price to value at
+        your own prices
       </Typography>
     </Box>
   );
