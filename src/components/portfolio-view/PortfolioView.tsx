@@ -10,7 +10,8 @@ import { TagSearchBar } from './TagSearchBar';
 import { AllocationList } from './AllocationList';
 import { ConcentrationBar } from './ConcentrationBar';
 import { colors, fonts } from '../../theme/tokens';
-import { formatDollars } from '../../utils/format';
+import { formatDollars, formatDate } from '../../utils/format';
+import { computeDataFreshness } from '../../domain/data-freshness';
 import type { ViewMode } from '../../domain/types';
 
 interface TabItem {
@@ -23,7 +24,18 @@ const TABS: readonly TabItem[] = [
   { key: 'tag', label: 'By tag' },
 ];
 
-function StalenessChips() {
+interface StalenessChipsProps {
+  readonly priceAsOf: Date | null;
+  readonly compositionAsOf: Date | null;
+}
+
+function StalenessChips({
+  priceAsOf,
+  compositionAsOf,
+}: StalenessChipsProps) {
+  const priceDate = formatDate(priceAsOf);
+  const compositionDate = formatDate(compositionAsOf);
+
   return (
     <Box
       sx={{
@@ -39,10 +51,14 @@ function StalenessChips() {
       }}
     >
       <Chip dot={colors.warn}>
-        <strong>Prices</strong> · delayed · end-of-day
+        <strong>Prices</strong> · delayed
+        {priceDate ? ` · close of ${priceDate}` : ''}
       </Chip>
       <Chip dot={colors.neutralDot}>
-        <strong>ETF holdings</strong> · reported quarterly
+        <strong>ETF holdings</strong>
+        {compositionDate
+          ? ` · as of ${compositionDate}`
+          : ' · reported quarterly'}
       </Chip>
       <Box
         sx={{
@@ -105,6 +121,14 @@ export function PortfolioView() {
   const companyCount = useMemo(
     () => allocations.filter((a) => !a.isUnknown).length,
     [allocations],
+  );
+
+  const freshness = useMemo(
+    () => computeDataFreshness(
+      state.securityData,
+      state.compositeSecurityData,
+    ),
+    [state.securityData, state.compositeSecurityData],
   );
 
   const firstTagOption = useMemo(() => {
@@ -249,7 +273,10 @@ export function PortfolioView() {
           </Alert>
         )}
 
-        <StalenessChips />
+        <StalenessChips
+          priceAsOf={freshness.priceAsOf}
+          compositionAsOf={freshness.compositionAsOf}
+        />
 
         {activeTab === 'holdings' ? (
           <>
