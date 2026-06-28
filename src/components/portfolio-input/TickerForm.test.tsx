@@ -13,7 +13,7 @@ describe('TickerForm', () => {
       screen.getByLabelText('Quantity'),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Add' }),
+      screen.getByRole('button', { name: 'Add holding' }),
     ).toBeInTheDocument();
   });
 
@@ -25,7 +25,7 @@ describe('TickerForm', () => {
     await user.type(screen.getByLabelText('Ticker'), 'goog');
     await user.type(screen.getByLabelText('Quantity'), '10');
     await user.click(
-      screen.getByRole('button', { name: 'Add' }),
+      screen.getByRole('button', { name: 'Add holding' }),
     );
 
     expect(onAdd).toHaveBeenCalledWith('GOOG', 10);
@@ -41,7 +41,7 @@ describe('TickerForm', () => {
     await user.type(tickerInput, 'GOOG');
     await user.type(quantityInput, '10');
     await user.click(
-      screen.getByRole('button', { name: 'Add' }),
+      screen.getByRole('button', { name: 'Add holding' }),
     );
 
     expect(tickerInput).toHaveValue('');
@@ -55,7 +55,7 @@ describe('TickerForm', () => {
 
     await user.type(screen.getByLabelText('Quantity'), '10');
     await user.click(
-      screen.getByRole('button', { name: 'Add' }),
+      screen.getByRole('button', { name: 'Add holding' }),
     );
 
     expect(onAdd).not.toHaveBeenCalled();
@@ -69,7 +69,7 @@ describe('TickerForm', () => {
     await user.type(screen.getByLabelText('Ticker'), 'GOOG');
     await user.type(screen.getByLabelText('Quantity'), '0');
     await user.click(
-      screen.getByRole('button', { name: 'Add' }),
+      screen.getByRole('button', { name: 'Add holding' }),
     );
 
     expect(onAdd).not.toHaveBeenCalled();

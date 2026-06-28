@@ -15,7 +15,7 @@ async function addHolding(
 ) {
   const tickerInput = screen.getByLabelText('Ticker');
   const quantityInput = screen.getByLabelText('Quantity');
-  const addButton = screen.getByRole('button', { name: 'Add' });
+  const addButton = screen.getByRole('button', { name: 'Add holding' });
 
   await user.clear(tickerInput);
   await user.type(tickerInput, ticker);
@@ -45,7 +45,7 @@ describe('App integration', () => {
 
       await user.click(
         screen.getByRole('button', {
-          name: 'Analyze Portfolio',
+          name: 'Analyze my portfolio',
         }),
       );
 
@@ -78,7 +78,7 @@ describe('App integration', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByText('Add Holdings'),
+          screen.getByText('Add your holdings'),
         ).toBeInTheDocument();
       });
     },
@@ -100,7 +100,7 @@ describe('App integration', () => {
 
       await user.click(
         screen.getByRole('button', {
-          name: 'Analyze Portfolio',
+          name: 'Analyze my portfolio',
         }),
       );
 
@@ -134,7 +134,7 @@ describe('App integration', () => {
 
       await user.click(
         screen.getByRole('button', {
-          name: 'Analyze Portfolio',
+          name: 'Analyze my portfolio',
         }),
       );
 
