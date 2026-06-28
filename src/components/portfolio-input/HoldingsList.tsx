@@ -120,7 +120,7 @@ export function HoldingsList({
           '&:hover': { bgcolor: '#000' },
         }}
       >
-        {isLoading ? 'Analyzing...' : 'Analyze Portfolio'}
+        {isLoading ? 'Analyzing...' : 'Analyze my portfolio'}
       </Button>
     </>
   );

@@ -10,6 +10,8 @@ import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import Popover from '@mui/material/Popover';
 import Button from '@mui/material/Button';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 import type { FlattenedAllocation } from '../../domain/types';
 import type { TagBreakdownEntry } from '../../domain/types';
 import type { ViewMode } from '../../domain/types';
@@ -46,11 +48,79 @@ const numSx = {
   fontSize: 14,
 };
 
+interface SourceBreakdownPopoverProps {
+  readonly anchor: HTMLElement | null;
+  readonly allocation: FlattenedAllocation | null;
+  readonly totalComponentValue: number;
+  readonly onClose: () => void;
+}
+
+function SourceBreakdownPopover({
+  anchor,
+  allocation,
+  totalComponentValue,
+  onClose,
+}: SourceBreakdownPopoverProps) {
+  return (
+    <Popover
+      open={anchor !== null}
+      anchorEl={anchor}
+      onClose={onClose}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+    >
+      {allocation && (
+        <Box sx={{ p: 2, maxWidth: 360 }}>
+          <Typography
+            sx={{
+              fontFamily: fonts.serif,
+              fontSize: 16,
+              fontWeight: 600,
+              mb: 1,
+            }}
+          >
+            {allocation.ticker} — Source Breakdown
+          </Typography>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Source</TableCell>
+                <TableCell align="right">Value</TableCell>
+                <TableCell align="right">%</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {allocation.components.map((c) => {
+                const pct = totalComponentValue > 0
+                  ? c.valueCents / totalComponentValue
+                  : 0;
+                return (
+                  <TableRow key={c.fromTicker}>
+                    <TableCell>{c.fromTicker}</TableCell>
+                    <TableCell align="right">
+                      {formatDollars(c.valueCents)}
+                    </TableCell>
+                    <TableCell align="right">
+                      {formatPercentage(pct)}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Box>
+      )}
+    </Popover>
+  );
+}
+
 export function AllocationList({
   viewMode,
   allocations,
   tagBreakdown,
 }: AllocationListProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
   const [popoverAnchor, setPopoverAnchor] =
     useState<HTMLElement | null>(null);
   const [selectedAllocation, setSelectedAllocation] =
@@ -107,7 +177,7 @@ export function AllocationList({
   }, [filtered, shownCount]);
 
   const handleRowClick = (
-    event: React.MouseEvent<HTMLTableRowElement>,
+    event: React.MouseEvent<HTMLElement>,
     allocation: FlattenedAllocation,
   ) => {
     if (allocation.components.length === 0) return;
@@ -130,32 +200,22 @@ export function AllocationList({
         <Typography sx={{ ...headCellSx, border: 'none', mb: 1.5 }}>
           {viewMode.tagName}
         </Typography>
-        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-          {tagBreakdown.map((entry) => (
-            <Box
-              key={entry.tagValue}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: { xs: 1.5, md: 2.25 },
-                py: 1.5,
-                borderBottom: `1px solid ${colors.borderRow}`,
-              }}
-            >
-              <Box
-                sx={{
-                  width: { xs: 110, md: 170 },
-                  fontSize: 14,
-                  fontWeight: 500,
-                  color: '#1f1f1a',
-                }}
-              >
-                {entry.tagValue}
-              </Box>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: { xs: 1.75, md: 0 },
+          }}
+        >
+          {tagBreakdown.map((entry) => {
+            const barWidth = maxPct > 0
+              ? `${(entry.percentage / maxPct) * 100}%`
+              : '0%';
+            const bar = (
               <Box
                 sx={{
                   flex: 1,
-                  height: 12,
+                  height: { xs: 10, md: 12 },
                   borderRadius: '6px',
                   bgcolor: '#f0efe9',
                   overflow: 'hidden',
@@ -166,35 +226,96 @@ export function AllocationList({
                     height: '100%',
                     borderRadius: '6px',
                     bgcolor: colors.accent,
-                    width: maxPct > 0
-                      ? `${(entry.percentage / maxPct) * 100}%`
-                      : '0%',
+                    width: barWidth,
                   }}
                 />
               </Box>
+            );
+
+            if (isMobile) {
+              return (
+                <Box key={entry.tagValue}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'baseline',
+                      justifyContent: 'space-between',
+                      mb: 0.75,
+                    }}
+                  >
+                    <Box
+                      component="span"
+                      sx={{
+                        fontSize: 13.5,
+                        fontWeight: 500,
+                        color: '#1f1f1a',
+                      }}
+                    >
+                      {entry.tagValue}
+                    </Box>
+                    <Box
+                      component="span"
+                      sx={{
+                        ...numSx,
+                        fontSize: 13.5,
+                        fontWeight: 600,
+                        color: '#1a1a18',
+                      }}
+                    >
+                      {formatPercentage(entry.percentage)}
+                    </Box>
+                  </Box>
+                  {bar}
+                </Box>
+              );
+            }
+
+            return (
               <Box
+                key={entry.tagValue}
                 sx={{
-                  ...numSx,
-                  width: { xs: 80, md: 120 },
-                  textAlign: 'right',
-                  color: '#46463f',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 2.25,
+                  py: 1.5,
+                  borderBottom: `1px solid ${colors.borderRow}`,
                 }}
               >
-                {formatDollars(entry.totalValueCents)}
+                <Box
+                  sx={{
+                    width: 170,
+                    fontSize: 14,
+                    fontWeight: 500,
+                    color: '#1f1f1a',
+                  }}
+                >
+                  {entry.tagValue}
+                </Box>
+                {bar}
+                <Box
+                  sx={{
+                    ...numSx,
+                    width: 120,
+                    textAlign: 'right',
+                    color: '#46463f',
+                  }}
+                >
+                  {formatDollars(entry.totalValueCents)}
+                </Box>
+                <Box
+                  sx={{
+                    ...numSx,
+                    width: 56,
+                    textAlign: 'right',
+                    fontWeight: 600,
+                    color: '#1a1a18',
+                  }}
+                >
+                  {formatPercentage(entry.percentage)}
+                </Box>
               </Box>
-              <Box
-                sx={{
-                  ...numSx,
-                  width: 56,
-                  textAlign: 'right',
-                  fontWeight: 600,
-                  color: '#1a1a18',
-                }}
-              >
-                {formatPercentage(entry.percentage)}
-              </Box>
-            </Box>
-          ))}
+            );
+          })}
         </Box>
       </Box>
     );
@@ -206,6 +327,161 @@ export function AllocationList({
       0,
     )
     : 0;
+
+  if (isMobile) {
+    return (
+      <>
+        <Box
+          sx={{
+            border: `1px solid ${colors.borderTable}`,
+            borderRadius: '12px',
+            overflow: 'hidden',
+          }}
+        >
+          {tail.shown.map((a) => (
+            <Box
+              key={a.ticker}
+              onClick={(e) => handleRowClick(e, a)}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 1.5,
+                px: 1.875,
+                py: 1.375,
+                borderBottom: `1px solid ${colors.borderRow}`,
+                '&:last-of-type': { borderBottom: 'none' },
+                cursor: a.components.length > 0 ? 'pointer' : 'default',
+                '&:hover': a.components.length > 0
+                  ? { bgcolor: colors.surfaceMuted }
+                  : undefined,
+              }}
+            >
+              <Box sx={{ minWidth: 0 }}>
+                <Box
+                  sx={{ fontSize: 14, fontWeight: 600, color: '#1a1a18' }}
+                >
+                  {a.ticker}
+                </Box>
+                <Box sx={{ ...numSx, fontSize: 11.5, color: '#9a9a8e' }}>
+                  {a.isUnknown || a.price === null
+                    ? 'undisclosed'
+                    : `${formatShares(a.totalValueCents / a.price)} sh`}
+                </Box>
+              </Box>
+              <Box sx={{ textAlign: 'right', flex: 'none' }}>
+                <Box
+                  sx={{
+                    ...numSx,
+                    fontWeight: 600,
+                    color: '#1a1a18',
+                  }}
+                >
+                  {formatPercentage(a.percentage)}
+                </Box>
+                <Box sx={{ ...numSx, fontSize: 11.5, color: '#9a9a8e' }}>
+                  {formatDollars(a.totalValueCents)}
+                </Box>
+              </Box>
+            </Box>
+          ))}
+
+          {tail.count > 0 && (
+            <Box
+              sx={{
+                px: 1.875,
+                py: 1.625,
+                bgcolor: colors.tailBg,
+                borderTop: `1px solid ${colors.border}`,
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  justifyContent: 'space-between',
+                  mb: 0.375,
+                }}
+              >
+                <Box
+                  component="span"
+                  sx={{ fontSize: 14, fontWeight: 600, color: '#5b4a37' }}
+                >
+                  Everything else
+                </Box>
+                <Box
+                  component="span"
+                  sx={{
+                    ...numSx,
+                    fontWeight: 600,
+                    color: '#5b4a37',
+                  }}
+                >
+                  {formatPercentage(tail.percentage)}
+                </Box>
+              </Box>
+              <Box
+                sx={{
+                  fontSize: 11.5,
+                  color: '#a89a86',
+                  mb: tail.canExpand ? 1.25 : 0,
+                }}
+              >
+                <Box
+                  component="span"
+                  sx={{ fontVariantNumeric: 'tabular-nums' }}
+                >
+                  {tail.count} securities
+                </Box>
+                {', each ≤ '}
+                <Box
+                  component="span"
+                  sx={{ fontVariantNumeric: 'tabular-nums' }}
+                >
+                  {formatDollars(tail.threshold)}
+                </Box>
+              </Box>
+              {tail.canExpand && (
+                <Button
+                  fullWidth
+                  onClick={() => setShownCount((c) => c + EXPAND_STEP)}
+                  sx={{
+                    height: 42,
+                    border: '1px solid #d8c8b2',
+                    borderRadius: '9px',
+                    bgcolor: colors.surface,
+                    color: colors.accentDeep,
+                    fontSize: 13,
+                    '&:hover': { bgcolor: '#faf6f0' },
+                  }}
+                >
+                  Show {EXPAND_STEP} more ↓
+                </Button>
+              )}
+            </Box>
+          )}
+        </Box>
+
+        {unknownPercentage > 0 && (
+          <Typography
+            data-testid="unknown-note"
+            sx={{ mt: 1.5, fontSize: 12.5, color: colors.inkMuted }}
+          >
+            {formatPercentage(unknownPercentage)} of this portfolio is
+            comprised of unknown holdings (ETF components with
+            undisclosed proportions).
+          </Typography>
+        )}
+
+        <SourceBreakdownPopover
+          anchor={popoverAnchor}
+          allocation={selectedAllocation}
+          totalComponentValue={totalComponentValue}
+          onClose={handlePopoverClose}
+        />
+      </>
+    );
+  }
 
   return (
     <>
@@ -452,57 +728,12 @@ export function AllocationList({
         </Typography>
       )}
 
-      <Popover
-        open={popoverAnchor !== null}
-        anchorEl={popoverAnchor}
+      <SourceBreakdownPopover
+        anchor={popoverAnchor}
+        allocation={selectedAllocation}
+        totalComponentValue={totalComponentValue}
         onClose={handlePopoverClose}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'left',
-        }}
-      >
-        {selectedAllocation && (
-          <Box sx={{ p: 2, maxWidth: 360 }}>
-            <Typography
-              sx={{
-                fontFamily: fonts.serif,
-                fontSize: 16,
-                fontWeight: 600,
-                mb: 1,
-              }}
-            >
-              {selectedAllocation.ticker} — Source Breakdown
-            </Typography>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Source</TableCell>
-                  <TableCell align="right">Value</TableCell>
-                  <TableCell align="right">%</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {selectedAllocation.components.map((c) => {
-                  const pct = totalComponentValue > 0
-                    ? c.valueCents / totalComponentValue
-                    : 0;
-                  return (
-                    <TableRow key={c.fromTicker}>
-                      <TableCell>{c.fromTicker}</TableCell>
-                      <TableCell align="right">
-                        {formatDollars(c.valueCents)}
-                      </TableCell>
-                      <TableCell align="right">
-                        {formatPercentage(pct)}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </Box>
-        )}
-      </Popover>
+      />
     </>
   );
 }

@@ -1,9 +1,7 @@
 import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
-import Stack from '@mui/material/Stack';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import type { ReactNode } from 'react';
-import { usePortfolio } from '../../hooks/usePortfolio';
 import { colors, fonts, GITHUB_URL } from '../../theme/tokens';
 
 interface AppShellProps {
@@ -11,8 +9,6 @@ interface AppShellProps {
 }
 
 export function AppShell({ children }: AppShellProps) {
-  const { state } = usePortfolio();
-  const isFirstScreen = state.phase === 'input';
 
   return (
     <Box
@@ -41,48 +37,33 @@ export function AppShell({ children }: AppShellProps) {
           sx={{
             m: 0,
             fontFamily: fonts.serif,
-            fontSize: { xs: 16, md: 18 },
+            fontSize: { xs: 15, md: 18 },
             fontWeight: 600,
             color: colors.inkStrong,
             letterSpacing: '-0.01em',
           }}
         >
-          Flattened Portfolio Analyst
+          <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>
+            Flattened Portfolio Analyst
+          </Box>
+          <Box component="span" sx={{ display: { xs: 'inline', md: 'none' } }}>
+            Flattened Portfolio
+          </Box>
         </Box>
-        <Stack
-          direction="row"
-          spacing={3}
-          alignItems="center"
-          sx={{ fontSize: 13.5, color: colors.inkFaint }}
+
+        <Link
+          href={GITHUB_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="View source on GitHub"
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            color: colors.accentDeep,
+          }}
         >
-          <Box
-            component="span"
-            sx={{ display: { xs: 'none', sm: 'block' } }}
-          >
-            How it works
-          </Box>
-          <Box
-            component="span"
-            sx={{ display: { xs: 'none', sm: 'block' } }}
-          >
-            Methodology
-          </Box>
-          {isFirstScreen && (
-            <Link
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="View source on GitHub"
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                color: colors.accentDeep,
-              }}
-            >
-              <GitHubIcon sx={{ fontSize: 22 }} />
-            </Link>
-          )}
-        </Stack>
+          <GitHubIcon sx={{ fontSize: 22 }} />
+        </Link>
       </Box>
 
       <Box

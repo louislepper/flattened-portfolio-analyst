@@ -22,7 +22,7 @@ interface TabItem {
 
 const TABS: readonly TabItem[] = [
   { key: 'holdings', label: 'Holdings' },
-  { key: 'tag', label: 'By tag' },
+  { key: 'tag', label: 'By tag (beta)' },
 ];
 
 const eyebrowSx = {
@@ -50,10 +50,11 @@ function StalenessChips({
     <Box
       sx={{
         display: 'flex',
-        alignItems: 'center',
+        flexDirection: { xs: 'column', md: 'row' },
+        alignItems: { xs: 'flex-start', md: 'center' },
         gap: 1.5,
         flexWrap: 'wrap',
-        p: '13px 16px',
+        p: { xs: '12px 14px', md: '13px 16px' },
         bgcolor: colors.surfaceMuted,
         border: `1px solid #efe9df`,
         borderRadius: '11px',
@@ -65,13 +66,14 @@ function StalenessChips({
         {priceDate ? ` · close of ${priceDate}` : ''}
       </Chip>
       <Chip dot={colors.neutralDot}>
-        <strong>ETF holdings</strong>
+        <strong>ETF holding proportions</strong>
         {compositionDate
-          ? ` · as of ${compositionDate}`
+          ? ` accurate as of ${compositionDate}`
           : ' · reported quarterly'}
       </Chip>
       <Box
         sx={{
+          display: { xs: 'none', md: 'block' },
           flex: 1,
           minWidth: 200,
           fontSize: 12.5,
@@ -310,7 +312,7 @@ export function PortfolioView() {
                 <Typography sx={eyebrowSx}>Your true exposure</Typography>
                 <Typography
                   variant="h4"
-                  sx={{ fontSize: 30, letterSpacing: '-0.01em' }}
+                  sx={{ fontSize: { xs: 24, md: 30 }, letterSpacing: '-0.01em' }}
                 >
                   Portfolio Allocation
                 </Typography>
@@ -338,7 +340,7 @@ export function PortfolioView() {
                 <Typography sx={eyebrowSx}>Allocation</Typography>
                 <Typography
                   variant="h4"
-                  sx={{ fontSize: 30, letterSpacing: '-0.01em' }}
+                  sx={{ fontSize: { xs: 24, md: 30 }, letterSpacing: '-0.01em' }}
                 >
                   Grouped by {selectedTagName.toLowerCase()}
                 </Typography>

@@ -67,7 +67,7 @@ describe('HoldingsList', () => {
 
     await user.click(
       screen.getByRole('button', {
-        name: 'Analyze Portfolio',
+        name: 'Analyze my portfolio',
       }),
     );
     expect(onAnalyze).toHaveBeenCalled();

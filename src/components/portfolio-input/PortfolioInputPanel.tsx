@@ -15,11 +15,20 @@ const HERO_POINTS = [
 
 function HeroPanel() {
   return (
-    <Box sx={{ p: { xs: '8px 0 24px', md: '52px 48px' } }}>
+    <Box sx={{ p: { xs: '30px 22px 6px', md: '52px 48px' } }}>
       <Typography
-        sx={{ fontSize: 13, color: colors.accentInk, mb: 2 }}
+        sx={{
+          fontSize: { xs: 12.5, md: 13 },
+          color: colors.accentInk,
+          mb: { xs: 1.75, md: 2 },
+        }}
       >
-        A free, open source portfolio tool · nothing is saved
+        <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>
+          A free, open source portfolio tool · nothing is saved
+        </Box>
+        <Box component="span" sx={{ display: { xs: 'inline', md: 'none' } }}>
+          A free portfolio tool
+        </Box>
       </Typography>
       <Typography
         component="h2"
@@ -27,58 +36,77 @@ function HeroPanel() {
           fontFamily: fonts.serif,
           fontWeight: 600,
           fontSize: { xs: 30, md: 44 },
-          lineHeight: 1.08,
+          lineHeight: 1.1,
           letterSpacing: '-0.02em',
           color: colors.ink,
-          mb: 2.5,
+          mb: { xs: 2, md: 2.5 },
           textWrap: 'balance',
         }}
       >
         See what's actually inside your funds
       </Typography>
+
+      {/* Mobile: single condensed paragraph */}
       <Typography
         sx={{
-          fontSize: 16.5,
-          lineHeight: 1.62,
+          display: { xs: 'block', md: 'none' },
+          fontSize: 15,
+          lineHeight: 1.6,
           color: colors.inkBody,
-          maxWidth: 520,
-          mb: 2,
         }}
       >
-        ETFs spread your money across hundreds of companies — but
-        several funds can quietly stack you into the same few giants.
-        This tool looks through each fund you hold and recombines the
-        underlying companies into one view.
+        We look through every fund you hold and recombine the
+        underlying companies — so you see your real exposure, company
+        by company.
       </Typography>
-      <Typography
-        sx={{
-          fontSize: 16.5,
-          lineHeight: 1.62,
-          color: colors.inkBody,
-          maxWidth: 520,
-          mb: 3.5,
-        }}
-      >
-        Add your holdings to see your real exposure, company by company.
-      </Typography>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.4 }}>
-        {HERO_POINTS.map((point) => (
-          <Box
-            key={point}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1.4,
-              fontSize: 14.5,
-              color: '#5b5b52',
-            }}
-          >
-            <Box component="span" sx={{ color: colors.accent }}>
-              →
+
+      {/* Desktop: full copy + feature list */}
+      <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+        <Typography
+          sx={{
+            fontSize: 16.5,
+            lineHeight: 1.62,
+            color: colors.inkBody,
+            maxWidth: 520,
+            mb: 2,
+          }}
+        >
+          ETFs spread your money across hundreds of companies — but
+          several funds can quietly stack you into the same few giants.
+          This tool looks through each fund you hold and recombines the
+          underlying companies into one view.
+        </Typography>
+        <Typography
+          sx={{
+            fontSize: 16.5,
+            lineHeight: 1.62,
+            color: colors.inkBody,
+            maxWidth: 520,
+            mb: 3.5,
+          }}
+        >
+          Add your holdings to see your real exposure, company by
+          company.
+        </Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.4 }}>
+          {HERO_POINTS.map((point) => (
+            <Box
+              key={point}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.4,
+                fontSize: 14.5,
+                color: '#5b5b52',
+              }}
+            >
+              <Box component="span" sx={{ color: colors.accent }}>
+                →
+              </Box>
+              {point}
             </Box>
-            {point}
-          </Box>
-        ))}
+          ))}
+        </Box>
       </Box>
     </Box>
   );
@@ -129,14 +157,14 @@ export function PortfolioInputPanel() {
         >
           <Typography
             variant="h6"
-            sx={{ fontSize: 22, mb: 2.5 }}
+            sx={{ fontSize: { xs: 19, md: 22 }, mb: { xs: 2, md: 2.5 } }}
           >
-            Add Holdings
+            Add your holdings
           </Typography>
           <TickerForm onAdd={addHolding} />
           <Box
             sx={{
-              display: 'flex',
+              display: { xs: 'none', md: 'flex' },
               alignItems: 'center',
               gap: 1.5,
               my: 2,
@@ -146,7 +174,29 @@ export function PortfolioInputPanel() {
             <Box sx={{ fontSize: 12.5, color: '#a8a89c' }}>or</Box>
             <Box sx={{ flex: 1, height: '1px', bgcolor: '#e7e0d3' }} />
           </Box>
-          <CsvImport onImport={addHoldings} />
+          <Box sx={{ mt: { xs: 1.5, md: 0 } }}>
+            <CsvImport onImport={addHoldings} />
+          </Box>
+
+          {!hasHoldings && (
+            <Button
+              fullWidth
+              disabled
+              sx={{
+                mt: { xs: 2.25, md: 3.25 },
+                height: 50,
+                bgcolor: colors.ctaDark,
+                color: '#fff',
+                fontSize: 15,
+                '&.Mui-disabled': {
+                  bgcolor: colors.ctaDark,
+                  color: 'rgba(255,255,255,0.45)',
+                },
+              }}
+            >
+              Analyze my portfolio
+            </Button>
+          )}
 
           {hasHoldings && (
             <Box sx={{ mt: 3.5 }}>

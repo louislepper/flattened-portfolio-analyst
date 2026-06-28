@@ -68,8 +68,7 @@ export function CsvImport({ onImport }: CsvImportProps) {
       <Typography
         variant="caption"
         color="text.secondary"
-        display="block"
-        sx={{ mt: 1, lineHeight: 1.5 }}
+        sx={{ display: { xs: 'none', md: 'block' }, mt: 1, lineHeight: 1.5 }}
       >
         Format: SYMBOL, Quantity, Price — include price to value at
         your own prices

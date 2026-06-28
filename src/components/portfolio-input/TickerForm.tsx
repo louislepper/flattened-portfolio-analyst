@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
+import Box from '@mui/material/Box';
 
 interface TickerFormProps {
   readonly onAdd: (ticker: string, quantity: number) => void;
@@ -58,9 +59,21 @@ export function TickerForm({ onAdd }: TickerFormProps) {
         <Button
           type="submit"
           variant="contained"
-          sx={{ height: 40, px: 2.5 }}
+          aria-label="Add holding"
+          sx={{
+            height: 40,
+            minWidth: { xs: 40, md: 64 },
+            px: { xs: 0, md: 2.5 },
+            fontSize: { xs: 22, md: 15 },
+            lineHeight: 1,
+          }}
         >
-          Add
+          <Box component="span" sx={{ display: { xs: 'inline', md: 'none' } }}>
+            +
+          </Box>
+          <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>
+            Add
+          </Box>
         </Button>
       </Stack>
     </form>
