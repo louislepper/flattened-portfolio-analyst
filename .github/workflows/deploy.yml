@@ -113,4 +113,4 @@ jobs:
           service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
 
       - name: Deploy to Firebase
-        run: npx firebase-tools deploy --force
+        run: npx firebase-tools@15.22.0 deploy --force
