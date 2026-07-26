@@ -4,6 +4,11 @@ import type { SecurityResponse } from './types';
 
 const APP_CHECK_HEADER = 'X-Firebase-AppCheck';
 
+// Comfortably longer than the backend's own upstream timeout, so a slow
+// refresh surfaces as a backend response rather than a client-side abort.
+// Without it a hung request leaves the UI spinning with no way out.
+const REQUEST_TIMEOUT_MS = 15000;
+
 export class ApiError extends Error {
   readonly status: number;
 
@@ -22,7 +27,7 @@ export async function fetchSecurity(
 
   const response = await fetch(
     `${SECURITY_ENDPOINT}/${encodeURIComponent(ticker)}`,
-    { headers },
+    { headers, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) },
   );
 
   if (!response.ok) {
@@ -54,17 +59,16 @@ export async function fetchSecurities(
   const successes = new Map<string, SecurityResponse>();
   const failures = new Map<string, Error>();
 
-  for (const result of results) {
+  results.forEach((result, index) => {
     if (result.status === 'fulfilled') {
       successes.set(result.value.ticker, result.value.data);
     } else {
       const error = result.reason instanceof Error
         ? result.reason
         : new Error(String(result.reason));
-      const ticker = tickers[results.indexOf(result)];
-      failures.set(ticker, error);
+      failures.set(tickers[index], error);
     }
-  }
+  });
 
   return { successes, failures };
 }

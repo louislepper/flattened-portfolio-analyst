@@ -15,7 +15,12 @@ const CACHE_MAX_AGE_NOT_FOUND = 4 * 24 * 60 * 60; // 4 days in seconds
 const CACHE_MAX_AGE_CLIENT_ERROR = 3 * 24 * 60 * 60; // 3 days in seconds
 const CACHE_CONTROL_NO_STORE = "no-store";
 const PARTIAL_ETF_THRESHOLD = 0.95;
-const STALENESS_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+// Staleness ramps in probabilistically between these two ages rather than
+// flipping at a hard cutoff. Securities first fetched together would otherwise
+// expire together and stampede Finnhub in one burst; spreading the refreshes
+// over the window de-synchronises those cohorts.
+const STALENESS_MIN_MS = 7 * 24 * 60 * 60 * 1000; // never refreshed before this
+const STALENESS_MAX_MS = 28 * 24 * 60 * 60 * 1000; // always refreshed after this
 const PATH_PREFIX = "/api/v1/securities/";
 
 // App Check gates the API to traffic from the real frontend. The off/monitor/
@@ -36,9 +41,37 @@ async function hasValidAppCheckToken(req: Request): Promise<boolean> {
   }
 }
 
-function isStale(refreshedAt: string): boolean {
-  const refreshedTime = new Date(refreshedAt).getTime();
-  return Date.now() - refreshedTime > STALENESS_MS;
+/**
+ * Decides whether to attempt a price refresh. Below STALENESS_MIN_MS never;
+ * above STALENESS_MAX_MS always; in between with a probability that ramps
+ * linearly from 0 to 1 across the window, so a given doc is refreshed on some
+ * request during the window rather than on the first one past a fixed cutoff.
+ *
+ * A missing or unparseable timestamp counts as stale: we cannot tell how old
+ * the price is, so refreshing is the safe direction.
+ *
+ * The random source is injectable so tests can pin the outcome.
+ */
+export function isStale(
+  refreshedAt: string | undefined,
+  random: () => number = Math.random
+): boolean {
+  const refreshedTime = new Date(refreshedAt ?? "").getTime();
+  if (!Number.isFinite(refreshedTime)) {
+    return true;
+  }
+
+  const age = Date.now() - refreshedTime;
+  if (age <= STALENESS_MIN_MS) {
+    return false;
+  }
+  if (age >= STALENESS_MAX_MS) {
+    return true;
+  }
+
+  const rampProgress =
+    (age - STALENESS_MIN_MS) / (STALENESS_MAX_MS - STALENESS_MIN_MS);
+  return random() < rampProgress;
 }
 
 function isPartialEtf(
