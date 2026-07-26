@@ -24,7 +24,11 @@ vi.mock("../launchdarkly.js", () => ({
   getAppCheckMode: mockGetAppCheckMode,
 }));
 
-const { handler } = await import("../handler.js");
+const { handler, isStale } = await import("../handler.js");
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const daysAgo = (days: number) =>
+  new Date(Date.now() - days * DAY_MS).toISOString();
 
 function createMockRequest(
   overrides: Record<string, unknown> = {}
@@ -64,8 +68,11 @@ function createMockResponse(): Record<string, unknown> & {
 }
 
 const recentDate = new Date().toISOString();
+// Past the always-refresh threshold, so handler tests stay deterministic —
+// ages inside the ramp window refresh only probabilistically. The ramp itself
+// is covered by the isStale unit tests below.
 const staleDate = new Date(
-  Date.now() - 8 * 24 * 60 * 60 * 1000
+  Date.now() - 30 * 24 * 60 * 60 * 1000
 ).toISOString();
 
 const stockDoc: SecurityDoc = {
@@ -451,5 +458,57 @@ describe("handler", () => {
       expect(mockGetSecurityDoc).toHaveBeenCalled();
       expect(res.statusCode).toBe(200);
     });
+  });
+});
+
+describe("isStale", () => {
+  const alwaysRefresh = () => 0;
+  const neverRefresh = () => 0.999999;
+
+  it("is fresh below the minimum age regardless of chance", () => {
+    expect(isStale(daysAgo(1), alwaysRefresh)).toBe(false);
+    expect(isStale(daysAgo(6.9), alwaysRefresh)).toBe(false);
+  });
+
+  it("is stale above the maximum age regardless of chance", () => {
+    expect(isStale(daysAgo(28.1), neverRefresh)).toBe(true);
+    expect(isStale(daysAgo(365), neverRefresh)).toBe(true);
+  });
+
+  it("ramps linearly across the window", () => {
+    // Midpoint of the 7..28 day window is 17.5 days -> ~50% chance.
+    expect(isStale(daysAgo(17.5), () => 0.49)).toBe(true);
+    expect(isStale(daysAgo(17.5), () => 0.51)).toBe(false);
+  });
+
+  it("is unlikely to refresh just past the minimum age", () => {
+    // ~4.8% of the way into the window.
+    expect(isStale(daysAgo(8), () => 0.2)).toBe(false);
+    expect(isStale(daysAgo(8), () => 0.01)).toBe(true);
+  });
+
+  it("is likely to refresh just below the maximum age", () => {
+    // ~95% of the way into the window.
+    expect(isStale(daysAgo(27), () => 0.9)).toBe(true);
+    expect(isStale(daysAgo(27), () => 0.99)).toBe(false);
+  });
+
+  it("treats a missing timestamp as stale", () => {
+    expect(isStale(undefined, neverRefresh)).toBe(true);
+  });
+
+  it("treats a malformed timestamp as stale", () => {
+    expect(isStale("", neverRefresh)).toBe(true);
+    expect(isStale("not-a-date", neverRefresh)).toBe(true);
+  });
+
+  it("treats a future timestamp as fresh", () => {
+    const future = new Date(Date.now() + DAY_MS).toISOString();
+    expect(isStale(future, alwaysRefresh)).toBe(false);
+  });
+
+  it("defaults to Math.random when no source is given", () => {
+    expect(isStale(daysAgo(1))).toBe(false);
+    expect(isStale(daysAgo(365))).toBe(true);
   });
 });

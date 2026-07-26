@@ -20,8 +20,21 @@ describe("fetchQuote", () => {
     expect(result).toBe(17845);
     expect(mockFetch).toHaveBeenCalledWith(
       "https://finnhub.io/api/v1/quote" +
-        "?symbol=GOOG&token=test-key"
+        "?symbol=GOOG&token=test-key",
+      expect.objectContaining({
+        signal: expect.any(AbortSignal),
+      })
     );
+  });
+
+  it("returns null when the request times out", async () => {
+    mockFetch.mockRejectedValue(
+      new DOMException("The operation was aborted", "TimeoutError")
+    );
+
+    const result = await fetchQuote("GOOG", "test-key");
+
+    expect(result).toBeNull();
   });
 
   it("returns null on API error response", async () => {
