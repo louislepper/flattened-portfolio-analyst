@@ -18,13 +18,19 @@ not in the React frontend.
 The SDK key is configured via the `LAUNCHDARKLY_SDK_KEY` environment variable.
 
 - **Do not hardcode** the SDK key — it is a server-side secret.
-- **Production:** stored in **Google Secret Manager** as `LAUNCHDARKLY_SDK_KEY`
-  and bound to the `api` function via `defineSecret(...)` in
-  `functions/src/index.ts`. Set/rotate it with:
+- **Deployed (staging and production):** stored in each Firebase project's
+  **Google Secret Manager** as `LAUNCHDARKLY_SDK_KEY` and bound to the `api`
+  function via `defineSecret(...)` in `functions/src/index.ts`. Set/rotate with:
   ```bash
-  printf '<sdk-key>' | npx firebase-tools functions:secrets:set LAUNCHDARKLY_SDK_KEY --data-file=-
+  # staging (fpa-staging) uses the LaunchDarkly "test" environment's SDK key
+  printf '<test-sdk-key>' | npx firebase-tools functions:secrets:set LAUNCHDARKLY_SDK_KEY \
+    --data-file=- --project staging
+  # production uses the "production" environment's SDK key
+  printf '<prod-sdk-key>' | npx firebase-tools functions:secrets:set LAUNCHDARKLY_SDK_KEY \
+    --data-file=- --project production
   ```
-  The deployed function uses the **production** environment's SDK key.
+  The staging client is built without a reCAPTCHA site key, so it sends no App
+  Check token; keep the `test` environment's flag at `monitor` or `off`.
 - **Local (emulator):** add `LAUNCHDARKLY_SDK_KEY=<test-env-sdk-key>` to
   `functions/.secret.local` (gitignored) if you need flag evaluation locally;
   otherwise the SDK fails closed (see below).
