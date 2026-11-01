@@ -37,6 +37,9 @@ etf-holdings-cache/
 etf-data/
 etf-data-scripts/
 
+# Firestore collection dumps taken before bulk writes
+firestore-backups/
+
 # Firebase
 functions/dist
 functions/node_modules
@@ -44,5 +47,4 @@ functions/node_modules
 
 # Installed agent skills (reinstall via `npx skills add`; tracked by skills-lock.json)
 .agents/
-.claude/skills/
-.claude/settings.local.json
+.claude/

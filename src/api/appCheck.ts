@@ -33,6 +33,16 @@ export async function initAppCheck(): Promise<void> {
   const [{ initializeApp }, { initializeAppCheck, ReCaptchaV3Provider }] =
     await Promise.all([import('firebase/app'), import('firebase/app-check')]);
 
+  // reCAPTCHA v3 can't attest localhost, so dev builds use an App Check debug
+  // token instead. Set VITE_APPCHECK_DEBUG_TOKEN to a token registered in the
+  // Firebase console; if unset, the SDK generates one and logs it to the console
+  // so it can be registered. Never applied to production builds.
+  if (import.meta.env.DEV) {
+    const debugToken = import.meta.env.VITE_APPCHECK_DEBUG_TOKEN;
+    (self as { FIREBASE_APPCHECK_DEBUG_TOKEN?: string | boolean })
+      .FIREBASE_APPCHECK_DEBUG_TOKEN = debugToken || true;
+  }
+
   const app = initializeApp(firebaseConfig);
   appCheck = initializeAppCheck(app, {
     provider: new ReCaptchaV3Provider(recaptchaSiteKey),

@@ -52,6 +52,15 @@ function TestConsumer() {
         data-testid="add-bulk"
       />
       <button
+        onClick={() => addHolding('ZZZZ', 1)}
+        data-testid="add-unknown"
+      />
+      <button
+        onClick={() =>
+          addHoldings([{ ticker: 'ZZZZ', quantity: 1, overridePrice: 1000 }])}
+        data-testid="add-unknown-priced"
+      />
+      <button
         onClick={() => removeHolding('GOOG')}
         data-testid="remove-goog"
       />
@@ -149,16 +158,23 @@ describe('PortfolioContext', () => {
   it('reports failed tickers on partial failure', async () => {
     const { user } = renderWithProvider();
     await user.click(screen.getByTestId('add-goog'));
+    await user.click(screen.getByTestId('add-unknown'));
+    await user.click(screen.getByTestId('analyze'));
 
-    await act(async () => {
-      const addUnknown = screen.getByTestId('add-bulk');
-      await user.click(addUnknown);
-    });
+    expect(await screen.findByText('results')).toBeInTheDocument();
+    expect(screen.getByTestId('failed')).toHaveTextContent('ZZZZ');
+    expect(screen.getByTestId('securities')).toHaveTextContent('1');
+  });
 
-    // Now we have GOOG + AAPL + JPM.
-    // Add an unknown one by calling addHolding manually
-    // For simplicity, let's use the existing test consumer
-    // that adds GOOG. We'll test partial failure separately.
+  it('reports failed tickers even when an override price keeps them', async () => {
+    const { user } = renderWithProvider();
+    await user.click(screen.getByTestId('add-goog'));
+    await user.click(screen.getByTestId('add-unknown-priced'));
+    await user.click(screen.getByTestId('analyze'));
+
+    expect(await screen.findByText('results')).toBeInTheDocument();
+    expect(screen.getByTestId('failed')).toHaveTextContent('ZZZZ');
+    expect(screen.getByTestId('securities')).toHaveTextContent('2');
   });
 
   it('resets to initial state', async () => {

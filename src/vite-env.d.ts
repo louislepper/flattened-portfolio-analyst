@@ -2,6 +2,7 @@
 
 interface ImportMetaEnv {
   readonly VITE_USE_REMOTE_API?: string;
+  readonly VITE_APPCHECK_DEBUG_TOKEN?: string;
   // Firebase App Check (reCAPTCHA v3) — all public, set at build time.
   readonly VITE_FIREBASE_API_KEY?: string;
   readonly VITE_FIREBASE_AUTH_DOMAIN?: string;

@@ -59,8 +59,6 @@ as sector or country.
   `GET /api/v1/securities/:ticker`. It returns security metadata, tags, price, and (for
   ETFs) constituent holdings from Firestore, refreshing stale prices from Finnhub. It's
   a per-ticker lookup API, so it sees tickers, not your portfolio.
-- **ETF data** (`etf-data/`, `etf-data-scripts/`) — offline scripts that scrape and
-  upload ETF constituent data, security profiles/tags, and prices into Firestore.
 
 Price refreshes are spread probabilistically over a window (see
 `functions/src/handler.ts`) so cohorts of securities fetched together don't all expire

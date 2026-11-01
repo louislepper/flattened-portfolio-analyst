@@ -195,7 +195,10 @@ export function PortfolioProvider({
         );
       }
 
-      const failedTickers: string[] = [];
+      // Every failed lookup is reported, even when an override price lets the
+      // holding stay in the portfolio: without the API data an ETF can't be
+      // flattened, so silently treating it as a plain stock gives wrong results.
+      const failedTickers = Array.from(result.failures.keys());
       for (const [ticker] of result.failures) {
         const overridePrice = overridePrices.get(ticker);
         if (overridePrice !== undefined) {
@@ -208,8 +211,6 @@ export function PortfolioProvider({
             compositeSecurities: [],
             refreshedAt: new Date().toISOString(),
           });
-        } else {
-          failedTickers.push(ticker);
         }
       }
 
