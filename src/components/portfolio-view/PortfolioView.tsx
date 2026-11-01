@@ -357,7 +357,8 @@ export function PortfolioView() {
         {state.failedTickers.length > 0 && (
           <Alert severity="warning" sx={{ mb: 2 }}>
             Could not fetch data for:{' '}
-            {state.failedTickers.join(', ')}
+            {state.failedTickers.join(', ')}. Holdings with a price in your
+            CSV are shown as single securities and are not flattened.
           </Alert>
         )}
 

@@ -408,4 +408,31 @@ describe('AllocationList', () => {
       expect(screen.getByText('25.0%')).toBeInTheDocument();
     },
   );
+  it('collapses tag groups past the first twelve into Everything else', async () => {
+    const user = userEvent.setup();
+    const breakdown: TagBreakdownEntry[] = Array.from({ length: 15 }, (_, i) => ({
+      tagValue: `Country ${i + 1}`,
+      totalValueCents: 1000,
+      percentage: 0.01,
+    }));
+    render(
+      <AllocationList
+        viewMode={{ kind: 'tag', tagKey: 'country', tagName: 'Country' }}
+        allocations={ALLOCATIONS}
+        tagBreakdown={breakdown}
+      />,
+    );
+
+    expect(screen.getByText('Country 12')).toBeInTheDocument();
+    expect(screen.queryByText('Country 13')).not.toBeInTheDocument();
+    const tail = screen.getByTestId('tag-tail');
+    expect(tail).toHaveTextContent('Everything else');
+    expect(tail).toHaveTextContent('3 groups');
+    expect(tail).toHaveTextContent('3.0%');
+
+    await user.click(screen.getByRole('button', { name: /show 10 more/i }));
+
+    expect(screen.getByText('Country 15')).toBeInTheDocument();
+    expect(screen.queryByTestId('tag-tail')).not.toBeInTheDocument();
+  });
 });

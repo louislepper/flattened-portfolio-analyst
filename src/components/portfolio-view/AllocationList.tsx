@@ -113,6 +113,127 @@ function SourceBreakdownPopover({
   );
 }
 
+interface TagTail {
+  readonly count: number;
+  readonly valueCents: number;
+  readonly percentage: number;
+  readonly canExpand: boolean;
+}
+
+interface TagTailRowProps {
+  readonly tail: TagTail;
+  readonly isMobile: boolean;
+  readonly onExpand: () => void;
+}
+
+const tailLabelSx = { fontSize: 14, fontWeight: 600, color: '#5b4a37' };
+const tailSubSx = {
+  fontSize: 12.5,
+  color: '#9a8d7a',
+  fontVariantNumeric: 'tabular-nums',
+};
+const expandButtonSx = {
+  border: '1px solid #d8c8b2',
+  bgcolor: colors.surface,
+  color: colors.accentDeep,
+  '&:hover': { bgcolor: '#faf6f0' },
+};
+
+function TagTailRow({ tail, isMobile, onExpand }: TagTailRowProps) {
+  const label = `${tail.count} ${tail.count === 1 ? 'group' : 'groups'}`;
+
+  if (isMobile) {
+    return (
+      <Box
+        data-testid="tag-tail"
+        sx={{
+          px: 1.875,
+          py: 1.625,
+          bgcolor: colors.tailBg,
+          border: `1px solid ${colors.border}`,
+          borderRadius: '12px',
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'baseline',
+            justifyContent: 'space-between',
+            mb: 0.375,
+          }}
+        >
+          <Box component="span" sx={tailLabelSx}>Everything else</Box>
+          <Box component="span" sx={{ ...numSx, ...tailLabelSx }}>
+            {formatPercentage(tail.percentage)}
+          </Box>
+        </Box>
+        <Box sx={{ ...tailSubSx, mb: tail.canExpand ? 1.25 : 0 }}>
+          {label} · {formatDollars(tail.valueCents)}
+        </Box>
+        {tail.canExpand && (
+          <Button
+            fullWidth
+            onClick={onExpand}
+            sx={{ ...expandButtonSx, height: 42, borderRadius: '9px', fontSize: 13 }}
+          >
+            Show {EXPAND_STEP} more ↓
+          </Button>
+        )}
+      </Box>
+    );
+  }
+
+  return (
+    <Box
+      data-testid="tag-tail"
+      onClick={tail.canExpand ? onExpand : undefined}
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2,
+        p: '16px 22px',
+        mt: 1,
+        bgcolor: colors.tailBg,
+        border: `1px solid ${colors.border}`,
+        borderRadius: '12px',
+        cursor: tail.canExpand ? 'pointer' : 'default',
+        '&:hover': tail.canExpand ? { bgcolor: '#f2ede4' } : undefined,
+      }}
+    >
+      <Box sx={{ flex: 1, display: 'flex', alignItems: 'baseline', gap: 1 }}>
+        <Box component="span" sx={tailLabelSx}>Everything else</Box>
+        <Box component="span" sx={tailSubSx}>{label}</Box>
+      </Box>
+      <Box sx={{ textAlign: 'right' }}>
+        <Box sx={{ ...numSx, ...tailLabelSx }}>
+          {formatDollars(tail.valueCents)}
+        </Box>
+        <Box sx={{ ...numSx, ...tailSubSx }}>
+          {formatPercentage(tail.percentage)}
+        </Box>
+      </Box>
+      {tail.canExpand && (
+        <Button
+          onClick={(e) => {
+            e.stopPropagation();
+            onExpand();
+          }}
+          sx={{
+            ...expandButtonSx,
+            borderRadius: '8px',
+            fontSize: 12.5,
+            py: 1,
+            px: 1.75,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Show {EXPAND_STEP} more ↓
+        </Button>
+      )}
+    </Box>
+  );
+}
+
 export function AllocationList({
   viewMode,
   allocations,
@@ -152,6 +273,25 @@ export function AllocationList({
   );
 
   const [shownCount, setShownCount] = useState(DEFAULT_VISIBLE_ROWS);
+  const [shownTagCount, setShownTagCount] = useState(DEFAULT_VISIBLE_ROWS);
+  const tagKey = viewMode.kind === 'tag' ? viewMode.tagKey : null;
+  const [tailTagKey, setTailTagKey] = useState(tagKey);
+  if (tailTagKey !== tagKey) {
+    setTailTagKey(tagKey);
+    setShownTagCount(DEFAULT_VISIBLE_ROWS);
+  }
+
+  const tagTail = useMemo(() => {
+    const shown = tagBreakdown.slice(0, shownTagCount);
+    const overflow = tagBreakdown.slice(shownTagCount);
+    return {
+      shown,
+      count: overflow.length,
+      valueCents: overflow.reduce((sum, e) => sum + e.totalValueCents, 0),
+      percentage: overflow.reduce((sum, e) => sum + e.percentage, 0),
+      canExpand: overflow.length > 0,
+    };
+  }, [tagBreakdown, shownTagCount]);
 
   const tail = useMemo(() => {
     const shown = filtered.visible.slice(0, shownCount);
@@ -207,7 +347,7 @@ export function AllocationList({
             gap: { xs: 1.75, md: 0 },
           }}
         >
-          {tagBreakdown.map((entry) => {
+          {tagTail.shown.map((entry) => {
             const barWidth = maxPct > 0
               ? `${(entry.percentage / maxPct) * 100}%`
               : '0%';
@@ -316,6 +456,13 @@ export function AllocationList({
               </Box>
             );
           })}
+          {tagTail.count > 0 && (
+            <TagTailRow
+              tail={tagTail}
+              isMobile={isMobile}
+              onExpand={() => setShownTagCount((c) => c + EXPAND_STEP)}
+            />
+          )}
         </Box>
       </Box>
     );
