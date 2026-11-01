@@ -1,0 +1,39 @@
+name: Deploy to production
+
+# Manual promotion from staging. Builds the chosen git ref against the
+# production environment's variables (the Firebase config is baked into the
+# frontend bundle, so the staging artifact cannot be reused) and deploys it.
+# Approval is enforced by the required reviewer on the `production` GitHub
+# Environment, not by this file.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref to deploy (defaults to main, i.e. what is on staging)"
+        required: false
+        default: main
+        type: string
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  ci:
+    uses: ./.github/workflows/build.yml
+    with:
+      environment: production
+      ref: ${{ inputs.ref }}
+
+  deploy-production:
+    needs: ci
+    uses: ./.github/workflows/firebase-deploy.yml
+    with:
+      environment: production
+      firebase_project: production
+      ref: ${{ inputs.ref }}

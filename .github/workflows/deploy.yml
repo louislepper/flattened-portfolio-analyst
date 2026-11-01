@@ -1,4 +1,4 @@
-name: CI / Deploy
+name: CI / Deploy to staging
 
 on:
   push:
@@ -16,101 +16,15 @@ permissions:
 
 jobs:
   ci:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    uses: ./.github/workflows/build.yml
+    with:
+      # PR builds use the staging config so the bundle is representative.
+      environment: staging
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            functions/package-lock.json
-
-      - name: Install root dependencies
-        run: npm ci
-
-      - name: Install functions dependencies
-        run: npm ci
-        working-directory: functions
-
-      - name: Lint root
-        run: npm run lint
-
-      - name: Lint functions
-        run: npm run lint
-        working-directory: functions
-
-      - name: Test root
-        run: npm test
-
-      - name: Test functions
-        run: npm test
-        working-directory: functions
-
-      - name: Build frontend
-        run: npm run build
-        env:
-          # Public Firebase App Check config (safe in the client bundle).
-          # Set as repo Variables, not Secrets. Empty values build the app with
-          # App Check tree-shaken out, so this is safe before they're populated.
-          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
-          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
-          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
-          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
-          VITE_RECAPTCHA_SITE_KEY: ${{ vars.VITE_RECAPTCHA_SITE_KEY }}
-
-      - name: Build functions
-        run: npm run build
-        working-directory: functions
-
-      - name: Upload frontend build
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: dist/
-
-      - name: Upload functions build
-        uses: actions/upload-artifact@v4
-        with:
-          name: functions-dist
-          path: functions/dist/
-
-  deploy:
+  deploy-staging:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: ci
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: functions/package-lock.json
-
-      - name: Install functions dependencies
-        run: npm ci
-        working-directory: functions
-
-      - name: Download frontend build
-        uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: dist/
-
-      - name: Download functions build
-        uses: actions/download-artifact@v4
-        with:
-          name: functions-dist
-          path: functions/dist/
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
-          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
-
-      - name: Deploy to Firebase
-        run: npx firebase-tools@15.22.0 deploy --force
+    uses: ./.github/workflows/firebase-deploy.yml
+    with:
+      environment: staging
+      firebase_project: staging

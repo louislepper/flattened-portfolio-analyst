@@ -1,0 +1,60 @@
+name: Firebase deploy
+
+# Reusable: deploy a build produced by build.yml to one Firebase project.
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: "GitHub Environment holding WIF_PROVIDER / WIF_SERVICE_ACCOUNT"
+        required: true
+        type: string
+      firebase_project:
+        description: "Alias from .firebaserc (staging | production)"
+        required: true
+        type: string
+      ref:
+        description: "Git ref to check out (defaults to the triggering ref)"
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install functions dependencies
+        run: npm ci
+        working-directory: functions
+
+      - name: Download frontend build
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-${{ inputs.environment }}
+          path: dist/
+
+      - name: Download functions build
+        uses: actions/download-artifact@v4
+        with:
+          name: functions-dist-${{ inputs.environment }}
+          path: functions/dist/
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+
+      - name: Deploy to Firebase
+        run: npx firebase-tools@15.22.0 deploy --force --project ${{ inputs.firebase_project }}

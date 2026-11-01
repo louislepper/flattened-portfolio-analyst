@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "flattened-portfolio-analyst"
+    "default": "fpa-staging",
+    "staging": "fpa-staging",
+    "production": "flattened-portfolio-analyst"
   }
 }
