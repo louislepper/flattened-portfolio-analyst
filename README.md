@@ -79,8 +79,23 @@ npm run storybook      # component workshop
 `.env.example` documents the frontend Firebase/App Check values and the backend API
 secrets. Production secrets live in Firebase Secret Manager, not in the repo.
 
-Deployment runs from GitHub Actions (`.github/workflows/deploy.yml`) to Firebase
-Hosting + Functions.
+### Deployment
+
+Two Firebase projects: `fpa-staging` and
+`flattened-portfolio-analyst` (production), aliased in `.firebaserc`. Each has its own
+Firestore, Functions, secrets and App Check config.
+
+- **Staging** deploys automatically on every merge to `main`
+  (`.github/workflows/deploy.yml`) and is served at
+  <https://fpa-staging.web.app/>.
+- **Production** is promoted manually: run the *Deploy to production* workflow
+  (`.github/workflows/deploy-production.yml`) from the Actions tab, optionally choosing a
+  git ref (defaults to `main`). The `production` GitHub Environment requires reviewer
+  approval before the deploy job runs.
+
+Both paths rebuild from source against their GitHub Environment's variables, because the
+Firebase config is baked into the frontend bundle at build time. Staging Firestore is
+populated separately by the data pipeline; see that repo's docs.
 
 ## Caveats
 

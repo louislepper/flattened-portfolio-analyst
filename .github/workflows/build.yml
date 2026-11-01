@@ -1,0 +1,84 @@
+name: Build
+
+# Reusable: lint, test and build the frontend + functions for one environment.
+# The frontend bundle embeds the Firebase config from that environment's
+# variables, so a build is only valid for the environment it was built for.
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: "GitHub Environment whose variables to build with"
+        required: true
+        type: string
+      ref:
+        description: "Git ref to build (defaults to the triggering ref)"
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            functions/package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install functions dependencies
+        run: npm ci
+        working-directory: functions
+
+      - name: Lint root
+        run: npm run lint
+
+      - name: Lint functions
+        run: npm run lint
+        working-directory: functions
+
+      - name: Test root
+        run: npm test
+
+      - name: Test functions
+        run: npm test
+        working-directory: functions
+
+      - name: Build frontend
+        run: npm run build
+        env:
+          # Public Firebase App Check config (safe in the client bundle). Set as
+          # Environment Variables, not Secrets. Empty values build the app with
+          # App Check tree-shaken out.
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
+          VITE_RECAPTCHA_SITE_KEY: ${{ vars.VITE_RECAPTCHA_SITE_KEY }}
+
+      - name: Build functions
+        run: npm run build
+        working-directory: functions
+
+      - name: Upload frontend build
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ inputs.environment }}
+          path: dist/
+
+      - name: Upload functions build
+        uses: actions/upload-artifact@v4
+        with:
+          name: functions-dist-${{ inputs.environment }}
+          path: functions/dist/
