@@ -1,5 +1,20 @@
 import { describe, it, expect } from 'vitest';
+import { http, HttpResponse } from 'msw';
 import { fetchSecurity, fetchSecurities, ApiError } from './client';
+import { server } from '../mocks/server';
+import { SECURITY_ENDPOINT } from './endpoints';
+import { MOCK_SECURITIES } from '../mocks/fixtures';
+
+function captureRefreshHeader(): { value: string | null } {
+  const captured = { value: null as string | null };
+  server.use(
+    http.get(`${SECURITY_ENDPOINT}/:ticker`, ({ request }) => {
+      captured.value = request.headers.get('X-Price-Refresh');
+      return HttpResponse.json(MOCK_SECURITIES.GOOG);
+    }),
+  );
+  return captured;
+}
 
 describe('fetchSecurity', () => {
   it('fetches a known security', async () => {
@@ -16,6 +31,18 @@ describe('fetchSecurity', () => {
     await expect(fetchSecurity('UNKNOWN')).rejects.toMatchObject({
       status: 404,
     });
+  });
+
+  it('sends no price-refresh header by default', async () => {
+    const captured = captureRefreshHeader();
+    await fetchSecurity('GOOG');
+    expect(captured.value).toBeNull();
+  });
+
+  it('asks the backend to skip the price refresh when requested', async () => {
+    const captured = captureRefreshHeader();
+    await fetchSecurity('GOOG', { skipPriceRefresh: true });
+    expect(captured.value).toBe('skip');
   });
 
   it('fetches a composite security (ETF)', async () => {

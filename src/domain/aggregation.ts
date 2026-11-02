@@ -96,7 +96,10 @@ export function flattenPortfolio(
           compositeDataMap?.get(composite.ticker)
           ?? securityDataMap.get(composite.ticker);
 
-        const childPrice = compositeData?.price ?? null;
+        // Constituents are fetched without a price refresh, so a never-priced
+        // doc arrives as 0; treat that as "unknown" rather than a real price.
+        const rawChildPrice = compositeData?.price ?? null;
+        const childPrice = rawChildPrice ? rawChildPrice : null;
         const childTags = compositeData?.tags ?? [];
         const childTagsLoaded = compositeData !== undefined;
 

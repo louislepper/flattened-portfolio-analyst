@@ -62,7 +62,11 @@ as sector or country.
 
 Price refreshes are spread probabilistically over a window (see
 `functions/src/handler.ts`) so cohorts of securities fetched together don't all expire
-at once and stampede the upstream API. App Check gates the API, with its enforcement
+at once and stampede the upstream API. Only securities the user holds are refreshed:
+the client fetches ETF constituents with `X-Price-Refresh: skip`, since their value comes
+from the ETF's own price and Finnhub's free tier allows just 60 calls a minute. A
+holding whose price is still 0 is reported as a failed lookup rather than valued at
+$0.00. App Check gates the API, with its enforcement
 mode driven by a LaunchDarkly flag — see [LAUNCHDARKLY.md](LAUNCHDARKLY.md).
 
 ## Development

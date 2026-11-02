@@ -997,4 +997,25 @@ describe('flattenPortfolio', () => {
       },
     );
   });
+
+  it('treats a zero constituent price as unknown', () => {
+    const holdings: Holding[] = [{ ticker: 'ETF', quantity: 1 }];
+    const securityData = new Map<string, SecurityResponse>([
+      ['ETF', makeEtf({
+        ticker: 'ETF',
+        price: 10000,
+        compositeSecurities: [
+          { ticker: 'A', isin: null, percentage: 1, refreshedAt: REFRESHED_AT },
+        ],
+      })],
+    ]);
+    const compositeData = new Map<string, SecurityResponse>([
+      ['A', makeStock({ ticker: 'A', price: 0 })],
+    ]);
+
+    const result = flattenPortfolio(holdings, securityData, compositeData);
+    const a = result.find((r) => r.ticker === 'A');
+    expect(a?.price).toBeNull();
+    expect(a?.totalValueCents).toBe(10000);
+  });
 });
