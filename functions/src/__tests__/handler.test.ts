@@ -295,6 +295,65 @@ describe("handler", () => {
     }
   );
 
+  it("skips the Finnhub refresh when the client sends x-price-refresh: skip", async () => {
+    process.env.FINNHUB_API_KEY = "test-key";
+    const staleDoc: SecurityDoc = {
+      ...stockDoc,
+      refreshedAt: staleDate,
+      updatedAt: staleDate,
+    };
+    mockGetSecurityDoc.mockResolvedValue(staleDoc);
+    const req = createMockRequest({
+      headers: { "x-price-refresh": "skip" },
+    });
+    const res = createMockResponse();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await handler(req as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockFetchQuote).not.toHaveBeenCalled();
+    expect(mockUpdateSecurityPrice).not.toHaveBeenCalled();
+    expect(res.headers["Cache-Control"]).toBe("public, max-age=604800");
+    const body = res.body as { price: number };
+    expect(body.price).toBe(17845);
+  });
+
+  it("does not cache a never-priced doc when the refresh is skipped", async () => {
+    process.env.FINNHUB_API_KEY = "test-key";
+    const unpricedDoc = { ...stockDoc, price: 0, refreshedAt: null };
+    mockGetSecurityDoc.mockResolvedValue(unpricedDoc);
+    const req = createMockRequest({
+      headers: { "x-price-refresh": "skip" },
+    });
+    const res = createMockResponse();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await handler(req as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockFetchQuote).not.toHaveBeenCalled();
+    expect(res.headers["Cache-Control"]).toBe("no-store");
+  });
+
+  it("does not cache a never-priced doc when Finnhub rejects the refresh", async () => {
+    process.env.FINNHUB_API_KEY = "test-key";
+    const unpricedDoc = { ...stockDoc, price: 0, refreshedAt: null };
+    mockGetSecurityDoc.mockResolvedValue(unpricedDoc);
+    mockFetchQuote.mockResolvedValue(null);
+    const req = createMockRequest();
+    const res = createMockResponse();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await handler(req as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockFetchQuote).toHaveBeenCalledWith("GOOG", "test-key");
+    expect(res.headers["Cache-Control"]).toBe("no-store");
+    const body = res.body as { price: number };
+    expect(body.price).toBe(0);
+  });
+
   it(
     "sets short cache for partial ETF",
     async () => {

@@ -9,6 +9,13 @@ import { getAppCheckMode } from "./launchdarkly.js";
 
 const TICKER_PATTERN = /^[A-Z0-9._-]+$/;
 const APP_CHECK_HEADER = "x-firebase-appcheck";
+// Sent by the client when it looks up an ETF's constituents. Their prices are
+// not needed to flatten the ETF (value flows from the ETF's own price), so the
+// Finnhub budget is reserved for securities the user actually holds. Finnhub's
+// free tier allows 60 calls/min; one ETF's constituents alone can exceed that
+// and starve the lookups that matter.
+const PRICE_REFRESH_HEADER = "x-price-refresh";
+const PRICE_REFRESH_SKIP = "skip";
 const CACHE_MAX_AGE_DEFAULT = 604800; // 1 week in seconds
 const CACHE_MAX_AGE_PARTIAL_ETF = 3 * 24 * 60 * 60; // 3 days in seconds
 const CACHE_MAX_AGE_NOT_FOUND = 4 * 24 * 60 * 60; // 4 days in seconds
@@ -156,7 +163,9 @@ export async function handler(
       return;
     }
 
-    if (isStale(doc.refreshedAt)) {
+    const skipRefresh =
+      req.header(PRICE_REFRESH_HEADER) === PRICE_REFRESH_SKIP;
+    if (!skipRefresh && isStale(doc.refreshedAt)) {
       const apiKey = process.env.FINNHUB_API_KEY;
       if (apiKey) {
         const priceCents = await fetchQuote(
@@ -175,8 +184,16 @@ export async function handler(
       ? CACHE_MAX_AGE_PARTIAL_ETF
       : CACHE_MAX_AGE_DEFAULT;
 
+    // A doc that has never been priced (the pipeline writes new securities
+    // with price 0) must not be cached: the CDN keys by URL only, so a cached
+    // unpriced response from a constituent lookup, or from a refresh that
+    // Finnhub rejected, would be served to a direct holding for the full TTL.
+    const cacheControl = doc.price > 0
+      ? `public, max-age=${maxAge}`
+      : CACHE_CONTROL_NO_STORE;
+
     const response = mapSecurityDocToResponse(doc);
-    res.set("Cache-Control", `public, max-age=${maxAge}`);
+    res.set("Cache-Control", cacheControl);
     res.status(200).json(response);
   } catch {
     res.set("Cache-Control", CACHE_CONTROL_NO_STORE);

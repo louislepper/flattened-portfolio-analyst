@@ -14,6 +14,7 @@ import {
 } from './portfolioContextValue';
 
 const COMPOSITE_BATCH_SIZE = 20;
+const UNPRICED_MESSAGE = 'No price is available for this security yet';
 const VALID_TICKER_PATTERN = /^[A-Z0-9._-]+$/;
 
 type PortfolioAction =
@@ -184,22 +185,30 @@ export function PortfolioProvider({
         }
       }
 
+      // A security the backend has never priced (price 0, e.g. a freshly
+      // scraped ETF whose Finnhub refresh was rate limited) would value the
+      // whole holding at $0.00. Treat it as a failed lookup instead, unless
+      // the CSV supplies a price.
+      const unpriced = new Map<string, Error>();
       const resolvedData = new Map<string, SecurityResponse>();
       for (const [ticker, security] of result.successes) {
         const overridePrice = overridePrices.get(ticker);
-        resolvedData.set(
-          ticker,
-          overridePrice !== undefined
-            ? { ...security, price: overridePrice }
-            : security,
-        );
+        if (overridePrice !== undefined) {
+          resolvedData.set(ticker, { ...security, price: overridePrice });
+        } else if (security.price > 0) {
+          resolvedData.set(ticker, security);
+        } else {
+          unpriced.set(ticker, new Error(UNPRICED_MESSAGE));
+        }
       }
+
+      const failures = new Map([...result.failures, ...unpriced]);
 
       // Every failed lookup is reported, even when an override price lets the
       // holding stay in the portfolio: without the API data an ETF can't be
       // flattened, so silently treating it as a plain stock gives wrong results.
-      const failedTickers = Array.from(result.failures.keys());
-      for (const [ticker] of result.failures) {
+      const failedTickers = Array.from(failures.keys());
+      for (const [ticker] of failures) {
         const overridePrice = overridePrices.get(ticker);
         if (overridePrice !== undefined) {
           resolvedData.set(ticker, {
@@ -271,7 +280,7 @@ export function PortfolioProvider({
         const results = await Promise.allSettled(
           batch.map(async (ticker) => ({
             ticker,
-            data: await fetchSecurity(ticker),
+            data: await fetchSecurity(ticker, { skipPriceRefresh: true }),
           })),
         );
 

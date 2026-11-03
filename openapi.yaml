@@ -34,6 +34,19 @@ paths:
             Firebase App Check (reCAPTCHA v3) token identifying the request as
             coming from the real frontend. Only verified when the backend has
             App Check enforcement enabled; rejected requests receive a 401.
+        - name: X-Price-Refresh
+          in: header
+          required: false
+          schema:
+            type: string
+            enum: [skip]
+          description: >
+            Set to `skip` to serve the stored price without attempting a
+            Finnhub refresh, even if the price is stale or missing. The client
+            sends this for ETF constituent lookups so the rate-limited Finnhub
+            budget is reserved for the securities the user actually holds.
+            Responses for securities that have never been priced (price 0) are
+            served with `Cache-Control: no-store`.
       responses:
         "200":
           description: Security data retrieved successfully

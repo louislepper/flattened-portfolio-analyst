@@ -3,6 +3,11 @@ import { getAppCheckToken } from './appCheck';
 import type { SecurityResponse } from './types';
 
 const APP_CHECK_HEADER = 'X-Firebase-AppCheck';
+// Tells the backend not to spend a Finnhub call refreshing this security's
+// price. Used for ETF constituents: their value comes from the ETF's own
+// price, so the rate-limited Finnhub budget is kept for the user's holdings.
+const PRICE_REFRESH_HEADER = 'X-Price-Refresh';
+const PRICE_REFRESH_SKIP = 'skip';
 
 // Comfortably longer than the backend's own upstream timeout, so a slow
 // refresh surfaces as a backend response rather than a client-side abort.
@@ -19,11 +24,22 @@ export class ApiError extends Error {
   }
 }
 
+export interface FetchSecurityOptions {
+  /** Skip the backend's lazy price refresh (for ETF constituents). */
+  readonly skipPriceRefresh?: boolean;
+}
+
 export async function fetchSecurity(
   ticker: string,
+  options: FetchSecurityOptions = {},
 ): Promise<SecurityResponse> {
   const token = await getAppCheckToken();
-  const headers = token ? { [APP_CHECK_HEADER]: token } : undefined;
+  const headers: Record<string, string> = {
+    ...(token ? { [APP_CHECK_HEADER]: token } : {}),
+    ...(options.skipPriceRefresh
+      ? { [PRICE_REFRESH_HEADER]: PRICE_REFRESH_SKIP }
+      : {}),
+  };
 
   const response = await fetch(
     `${SECURITY_ENDPOINT}/${encodeURIComponent(ticker)}`,
