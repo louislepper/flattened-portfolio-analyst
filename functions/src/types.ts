@@ -4,11 +4,20 @@ export interface SecurityTag {
   value: string;
 }
 
+/**
+ * How the pipeline classified a constituent. Only "equity" constituents have a
+ * resolvable security doc; "non-equity" (bonds, cash, futures) and
+ * "unresolved" keep the raw provider string as their ticker. Docs written
+ * before the pipeline recorded this have no kind.
+ */
+export type ConstituentKind = "equity" | "non-equity" | "unresolved";
+
 export interface CompositeSecurity {
   ticker: string;
   isin: string | null;
   percentage: number;
   refreshedAt: string;
+  kind?: ConstituentKind;
 }
 
 export interface SecurityDoc {

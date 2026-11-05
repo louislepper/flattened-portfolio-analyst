@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseCsvHoldings } from './csv-parser';
+import { parseCsvHoldings, parseCsvHoldingsWithReport } from './csv-parser';
 
 describe('parseCsvHoldings', () => {
   it('parses simple ticker,quantity rows', () => {
@@ -187,5 +187,83 @@ describe('parseCsvHoldings', () => {
       { ticker: 'TEAM', quantity: 343, overridePrice: 8746 },
       { ticker: 'USD_CASH', quantity: 101500, overridePrice: 100 },
     ]);
+  });
+});
+
+describe('parseCsvHoldingsWithReport', () => {
+  it('reports no skipped rows for a clean file with a header', () => {
+    const result = parseCsvHoldingsWithReport('Symbol,Quantity\nGOOG,10\nMSFT,5');
+    expect(result.holdings).toHaveLength(2);
+    expect(result.skippedRows).toEqual([]);
+  });
+
+  it('reports nothing for an empty file', () => {
+    expect(parseCsvHoldingsWithReport('')).toEqual({
+      holdings: [],
+      skippedRows: [],
+    });
+  });
+
+  it('reports a negative quantity row such as a margin loan', () => {
+    const csv = [
+      'Symbol,Quantity,Price',
+      'AMZN,239,264.14',
+      'MARGIN,"-101,000.00",1',
+    ].join('\n');
+    const result = parseCsvHoldingsWithReport(csv);
+    expect(result.holdings).toEqual([
+      { ticker: 'AMZN', quantity: 239, overridePrice: 26414 },
+    ]);
+    expect(result.skippedRows).toEqual([
+      { lineNumber: 3, ticker: 'MARGIN', reason: 'non-positive-quantity' },
+    ]);
+  });
+
+  it('reports each reason with the line number in the original file', () => {
+    const csv = [
+      'Symbol,Quantity',
+      'GOOG,10',
+      '',
+      'ZERO,0',
+      'BAD,abc',
+      ',5',
+      'LONELY',
+      'EMPTYQ,',
+      'MSFT,5',
+    ].join('\n');
+    const result = parseCsvHoldingsWithReport(csv);
+    expect(result.holdings).toEqual([
+      { ticker: 'GOOG', quantity: 10 },
+      { ticker: 'MSFT', quantity: 5 },
+    ]);
+    expect(result.skippedRows).toEqual([
+      { lineNumber: 4, ticker: 'ZERO', reason: 'non-positive-quantity' },
+      { lineNumber: 5, ticker: 'BAD', reason: 'unparseable-quantity' },
+      { lineNumber: 6, ticker: null, reason: 'missing-ticker' },
+      { lineNumber: 7, ticker: 'LONELY', reason: 'missing-quantity' },
+      { lineNumber: 8, ticker: 'EMPTYQ', reason: 'missing-quantity' },
+    ]);
+  });
+
+  it('does not report the header row as skipped', () => {
+    const result = parseCsvHoldingsWithReport('Ticker,Shares,Price\nGOOG,1,2');
+    expect(result.skippedRows).toEqual([]);
+  });
+
+  it('reports a skipped row even when no holdings remain', () => {
+    const result = parseCsvHoldingsWithReport('GOOG,10\nGOOG,-10');
+    expect(result.holdings).toEqual([{ ticker: 'GOOG', quantity: 10 }]);
+    expect(result.skippedRows).toHaveLength(1);
+
+    const onlyBad = parseCsvHoldingsWithReport('GOOG,-1\nMSFT,-2');
+    expect(onlyBad.holdings).toEqual([]);
+    expect(onlyBad.skippedRows.map((r) => r.ticker)).toEqual(['GOOG', 'MSFT']);
+  });
+
+  it('agrees with parseCsvHoldings on holdings', () => {
+    const csv = 'Symbol,Qty,Price\nAMZN,2,10\nAMZN,3,11\nX,-1\nTEAM,4';
+    expect(parseCsvHoldingsWithReport(csv).holdings).toEqual(
+      parseCsvHoldings(csv),
+    );
   });
 });

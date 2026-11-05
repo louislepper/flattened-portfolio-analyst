@@ -17,7 +17,7 @@ const SAMPLE_ALLOCATIONS: FlattenedAllocation[] = [
         value: 'Large Cap',
       },
     ],
-    tagsLoaded: true,
+    tagStatus: 'loaded',
     components: [
       {
         fromTicker: 'GOOG',
@@ -28,7 +28,7 @@ const SAMPLE_ALLOCATIONS: FlattenedAllocation[] = [
         valueCents: 50000,
       },
     ],
-    isUnknown: false,
+    kind: 'security',
   },
   {
     ticker: 'MSFT',
@@ -44,14 +44,14 @@ const SAMPLE_ALLOCATIONS: FlattenedAllocation[] = [
         value: 'Large Cap',
       },
     ],
-    tagsLoaded: true,
+    tagStatus: 'loaded',
     components: [
       {
         fromTicker: 'TECH_ETF',
         valueCents: 200000,
       },
     ],
-    isUnknown: false,
+    kind: 'security',
   },
 ];
 
@@ -91,17 +91,67 @@ export const WithUnknownEntries: Story = {
         percentage: 0.3,
         price: null,
         tags: [],
-        tagsLoaded: true,
+        tagStatus: 'loaded',
         components: [
           {
             fromTicker: 'PARTIAL_ETF',
             valueCents: 80000,
           },
         ],
-        isUnknown: true,
+        kind: 'unknown',
       },
     ],
     tagBreakdown: [],
+  },
+};
+
+const aggregateRow = (
+  ticker: string,
+  kind: FlattenedAllocation['kind'],
+  valueCents: number,
+  percentage: number,
+): FlattenedAllocation => ({
+  ticker,
+  kind,
+  shareCount: 0,
+  valueCentsFromComponents: valueCents,
+  totalValueCents: valueCents,
+  percentage,
+  price: null,
+  tags: [],
+  tagStatus: 'loaded',
+  components: [{ fromTicker: 'GOVI', valueCents }],
+});
+
+export const WithNonEquityAndUnclassified: Story = {
+  args: {
+    viewMode: { kind: 'securities' },
+    allocations: [
+      aggregateRow('Non-equity holdings (from GOVI)', 'non-equity', 120000, 0.4),
+      { ...SAMPLE_ALLOCATIONS[0], percentage: 0.3 },
+      { ...SAMPLE_ALLOCATIONS[1], percentage: 0.2 },
+      aggregateRow('Unclassified holdings (from GOVI)', 'unresolved', 30000, 0.1),
+    ],
+    tagBreakdown: [],
+  },
+};
+
+export const TagBreakdownWithLoadBuckets: Story = {
+  args: {
+    viewMode: { kind: 'tag', tagKey: 'sector', tagName: 'Sector' },
+    allocations: [],
+    tagBreakdown: [
+      { tagValue: 'Technology', totalValueCents: 40000, percentage: 0.4 },
+      {
+        tagValue: 'Non-equity (bonds, cash, futures)',
+        totalValueCents: 20000,
+        percentage: 0.2,
+      },
+      { tagValue: 'Unknown - loading', totalValueCents: 15000, percentage: 0.15 },
+      { tagValue: 'Unclassified', totalValueCents: 10000, percentage: 0.1 },
+      { tagValue: 'No data', totalValueCents: 10000, percentage: 0.1 },
+      { tagValue: 'Untagged', totalValueCents: 5000, percentage: 0.05 },
+    ],
   },
 };
 
@@ -121,9 +171,9 @@ export const WithTinyAllocations: Story = {
         percentage: 0.00005,
         price: null,
         tags: [],
-        tagsLoaded: true,
+        tagStatus: 'loaded',
         components: [],
-        isUnknown: false,
+        kind: 'security',
       },
       {
         ticker: 'TINY_B',
@@ -133,9 +183,9 @@ export const WithTinyAllocations: Story = {
         percentage: 0.00005,
         price: null,
         tags: [],
-        tagsLoaded: true,
+        tagStatus: 'loaded',
         components: [],
-        isUnknown: false,
+        kind: 'security',
       },
       {
         ticker: 'TINY_C',
@@ -145,9 +195,9 @@ export const WithTinyAllocations: Story = {
         percentage: 0.00002,
         price: null,
         tags: [],
-        tagsLoaded: true,
+        tagStatus: 'loaded',
         components: [],
-        isUnknown: false,
+        kind: 'security',
       },
     ],
     tagBreakdown: [],

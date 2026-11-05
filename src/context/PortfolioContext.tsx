@@ -6,8 +6,8 @@ import {
 } from 'react';
 import type { SecurityResponse } from '../api/types';
 import type { Holding, ViewMode } from '../domain/types';
-import { fetchSecurity } from '../api/client';
 import { fetchSecurities } from '../api/client';
+import { collectConstituentLookups } from '../domain/constituents';
 import {
   PortfolioContext,
   type PortfolioState,
@@ -15,7 +15,6 @@ import {
 
 const COMPOSITE_BATCH_SIZE = 20;
 const UNPRICED_MESSAGE = 'No price is available for this security yet';
-const VALID_TICKER_PATTERN = /^[A-Z0-9._-]+$/;
 
 type PortfolioAction =
   | { type: 'ADD_HOLDING'; holding: Holding }
@@ -30,9 +29,11 @@ type PortfolioAction =
   }
   | { type: 'FETCH_ERROR'; message: string }
   | {
-    type: 'COMPOSITE_BATCH_SUCCESS';
+    type: 'COMPOSITE_BATCH_SETTLED';
     batch: ReadonlyMap<string, SecurityResponse>;
+    failedTickers: readonly string[];
   }
+  | { type: 'COMPOSITE_LOAD_COMPLETE' }
   | { type: 'SET_VIEW_MODE'; viewMode: ViewMode }
   | { type: 'RESET' };
 
@@ -43,6 +44,9 @@ const INITIAL_STATE: PortfolioState = {
   phase: 'input',
   errorMessage: null,
   failedTickers: [],
+  constituentLoadStatus: 'idle',
+  constituentLookupCount: 0,
+  failedConstituentTickers: new Set(),
   viewMode: { kind: 'securities' },
 };
 
@@ -105,31 +109,44 @@ function reducer(
         phase: 'loading',
         errorMessage: null,
         failedTickers: [],
+        constituentLoadStatus: 'idle',
+        constituentLookupCount: 0,
+        failedConstituentTickers: new Set(),
       };
-    case 'FETCH_SUCCESS':
+    case 'FETCH_SUCCESS': {
+      const lookupCount = collectConstituentLookups(action.data).length;
       return {
         ...state,
         phase: 'results',
         securityData: action.data,
         compositeSecurityData: new Map(),
         failedTickers: action.failedTickers,
+        constituentLoadStatus: lookupCount > 0 ? 'loading' : 'complete',
+        constituentLookupCount: lookupCount,
+        failedConstituentTickers: new Set(),
       };
+    }
     case 'FETCH_ERROR':
       return {
         ...state,
         phase: 'error',
         errorMessage: action.message,
       };
-    case 'COMPOSITE_BATCH_SUCCESS': {
-      const merged = new Map(state.compositeSecurityData);
-      for (const [ticker, data] of action.batch) {
-        merged.set(ticker, data);
-      }
+    case 'COMPOSITE_BATCH_SETTLED':
       return {
         ...state,
-        compositeSecurityData: merged,
+        compositeSecurityData: action.batch.size > 0
+          ? new Map([...state.compositeSecurityData, ...action.batch])
+          : state.compositeSecurityData,
+        failedConstituentTickers: action.failedTickers.length > 0
+          ? new Set([
+            ...state.failedConstituentTickers,
+            ...action.failedTickers,
+          ])
+          : state.failedConstituentTickers,
       };
-    }
+    case 'COMPOSITE_LOAD_COMPLETE':
+      return { ...state, constituentLoadStatus: 'complete' };
     case 'SET_VIEW_MODE':
       return { ...state, viewMode: action.viewMode };
     case 'RESET':
@@ -249,22 +266,13 @@ export function PortfolioProvider({
   useEffect(() => {
     if (state.phase !== 'results') return;
 
-    const compositeTickers = new Set<string>();
-    for (const security of state.securityData.values()) {
-      if (security.type !== 'etf') continue;
-      for (const composite of security.compositeSecurities) {
-        if (!state.securityData.has(composite.ticker)) {
-          compositeTickers.add(composite.ticker);
-        }
-      }
-    }
-
-    if (compositeTickers.size === 0) return;
+    // Only equity constituents have a security doc of their own. Non-equity
+    // and unresolved entries keep the provider's raw string as ticker, which
+    // can collide with a real doc and would return the wrong security.
+    const tickers = collectConstituentLookups(state.securityData);
+    if (tickers.length === 0) return;
 
     let cancelled = false;
-    const tickers = Array.from(compositeTickers).filter(
-      (t) => VALID_TICKER_PATTERN.test(t.toUpperCase()),
-    );
 
     (async () => {
       for (
@@ -277,32 +285,20 @@ export function PortfolioProvider({
           i,
           i + COMPOSITE_BATCH_SIZE,
         );
-        const results = await Promise.allSettled(
-          batch.map(async (ticker) => ({
-            ticker,
-            data: await fetchSecurity(ticker, { skipPriceRefresh: true }),
-          })),
+        const { successes, failures } = await fetchSecurities(
+          batch,
+          { skipPriceRefresh: true },
         );
 
         if (cancelled) return;
 
-        const batchMap = new Map<string, SecurityResponse>();
-        for (const result of results) {
-          if (result.status === 'fulfilled') {
-            batchMap.set(
-              result.value.ticker,
-              result.value.data,
-            );
-          }
-        }
-
-        if (batchMap.size > 0) {
-          dispatch({
-            type: 'COMPOSITE_BATCH_SUCCESS',
-            batch: batchMap,
-          });
-        }
+        dispatch({
+          type: 'COMPOSITE_BATCH_SETTLED',
+          batch: successes,
+          failedTickers: Array.from(failures.keys()),
+        });
       }
+      if (!cancelled) dispatch({ type: 'COMPOSITE_LOAD_COMPLETE' });
     })();
 
     return () => { cancelled = true; };

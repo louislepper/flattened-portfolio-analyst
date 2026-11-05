@@ -122,6 +122,57 @@ describe("handler", () => {
     expect(res.body).not.toHaveProperty("updatedAt");
   });
 
+  it("passes constituent kind through to the response", async () => {
+    const etfWithKinds: SecurityDoc = {
+      ticker: "GOVI",
+      isin: null,
+      type: "etf",
+      price: 2800,
+      tags: [],
+      compositeSecurities: [
+        {
+          ticker: "AAPL",
+          isin: "US0378331005",
+          percentage: 0.5,
+          refreshedAt: recentDate,
+          kind: "equity",
+        },
+        {
+          ticker: "T",
+          isin: "US912828YK04",
+          percentage: 0.3,
+          refreshedAt: recentDate,
+          kind: "non-equity",
+        },
+        {
+          ticker: "LEGACY",
+          isin: null,
+          percentage: 0.2,
+          refreshedAt: recentDate,
+        },
+      ],
+      refreshedAt: recentDate,
+      updatedAt: recentDate,
+    };
+    mockGetSecurityDoc.mockResolvedValue(etfWithKinds);
+    const req = createMockRequest({ path: "/api/v1/securities/GOVI" });
+    const res = createMockResponse();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await handler(req as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    const body = res.body as {
+      compositeSecurities: Record<string, unknown>[];
+    };
+    expect(body.compositeSecurities.map((c) => c.kind)).toEqual([
+      "equity",
+      "non-equity",
+      undefined,
+    ]);
+    expect(body.compositeSecurities[2]).not.toHaveProperty("kind");
+  });
+
   it("returns 404 when Firestore returns null", async () => {
     mockGetSecurityDoc.mockResolvedValue(null);
     const req = createMockRequest({
@@ -134,7 +185,7 @@ describe("handler", () => {
 
     expect(res.statusCode).toBe(404);
     expect(res.headers["Cache-Control"]).toBe(
-      "public, max-age=345600"
+      "public, max-age=86400"
     );
     expect(res.body).toEqual({
       error: "NOT_FOUND",

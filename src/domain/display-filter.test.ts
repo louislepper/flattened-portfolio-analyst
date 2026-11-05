@@ -12,9 +12,9 @@ function makeAllocation(
     percentage: 0,
     price: null,
     tags: [],
-    tagsLoaded: true,
+    tagStatus: 'loaded',
     components: [],
-    isUnknown: false,
+    kind: 'security',
     ...overrides,
   };
 }

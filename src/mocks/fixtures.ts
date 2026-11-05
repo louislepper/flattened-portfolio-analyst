@@ -170,4 +170,125 @@ export const MOCK_SECURITIES: Record<string, SecurityResponse> = {
     tags: [],
     compositeSecurities: [],
   },
+  // AT&T: its ticker collides with the raw provider ticker of US Treasuries.
+  T: {
+    ticker: 'T',
+    isin: null,
+    type: 'stock',
+    price: 2200,
+    refreshedAt: REFRESHED_AT,
+    tags: [
+      {
+        key: 'sector',
+        name: 'Sector',
+        value: 'Communication Services',
+      },
+    ],
+    compositeSecurities: [],
+  },
+  // Answers slowly, so the dev server shows constituent loading in progress.
+  SLOWCO: {
+    ticker: 'SLOWCO',
+    isin: null,
+    type: 'stock',
+    price: 1000,
+    refreshedAt: REFRESHED_AT,
+    tags: [
+      {
+        key: 'sector',
+        name: 'Sector',
+        value: 'Industrials',
+      },
+    ],
+    compositeSecurities: [],
+  },
+  // A bond fund as the pipeline now writes it: non-equity and unresolved
+  // constituents keep the provider's raw ticker ("T" is Treasuries here).
+  BOND_ETF: {
+    ticker: 'BOND_ETF',
+    isin: null,
+    type: 'etf',
+    price: 10000,
+    refreshedAt: REFRESHED_AT,
+    tags: [],
+    compositeSecurities: [
+      {
+        ticker: 'T',
+        isin: 'US912828YK04',
+        percentage: 0.6,
+        refreshedAt: REFRESHED_AT,
+        kind: 'non-equity',
+      },
+      {
+        ticker: 'B',
+        isin: 'US912797GL55',
+        percentage: 0.2,
+        refreshedAt: REFRESHED_AT,
+        kind: 'non-equity',
+      },
+      {
+        ticker: 'AAPL',
+        isin: 'US0378331005',
+        percentage: 0.1,
+        refreshedAt: REFRESHED_AT,
+        kind: 'equity',
+      },
+      {
+        ticker: 'XS1234567890',
+        isin: null,
+        percentage: 0.1,
+        refreshedAt: REFRESHED_AT,
+        kind: 'unresolved',
+      },
+    ],
+  },
+  // A doc written before constituents carried a kind, with the placeholder
+  // and non-ticker strings legacy docs contain, a ticker with no doc
+  // (MISSINGCO), one whose lookup keeps failing (FLAKYCO) and a slow one.
+  LEGACY_ETF: {
+    ticker: 'LEGACY_ETF',
+    isin: null,
+    type: 'etf',
+    price: 20000,
+    refreshedAt: REFRESHED_AT,
+    tags: [],
+    compositeSecurities: [
+      {
+        ticker: 'GOOG',
+        isin: null,
+        percentage: 0.4,
+        refreshedAt: REFRESHED_AT,
+      },
+      {
+        ticker: 'SLOWCO',
+        isin: null,
+        percentage: 0.2,
+        refreshedAt: REFRESHED_AT,
+      },
+      {
+        ticker: 'MISSINGCO',
+        isin: null,
+        percentage: 0.1,
+        refreshedAt: REFRESHED_AT,
+      },
+      {
+        ticker: 'FLAKYCO',
+        isin: null,
+        percentage: 0.1,
+        refreshedAt: REFRESHED_AT,
+      },
+      {
+        ticker: 'UNKNOWN',
+        isin: null,
+        percentage: 0.1,
+        refreshedAt: REFRESHED_AT,
+      },
+      {
+        ticker: 'CASH USD',
+        isin: null,
+        percentage: 0.1,
+        refreshedAt: REFRESHED_AT,
+      },
+    ],
+  },
 };

@@ -4,7 +4,7 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recha
 import Box from '@mui/material/Box';
 import type { FlattenedAllocation } from '../../domain/types';
 import type { TagBreakdownEntry } from '../../domain/types';
-import type { ViewMode } from '../../domain/types';
+import type { AllocationKind, ViewMode } from '../../domain/types';
 import { filterSmallAllocations } from '../../domain/display-filter';
 import { formatPercentage } from '../../utils/format';
 
@@ -23,6 +23,8 @@ const COLORS = [
 
 const EVERYTHING_ELSE_COLOR = '#bdbdbd';
 const UNKNOWN_COLOR = '#9e9e9e';
+const NON_EQUITY_COLOR = '#90a4ae';
+const UNRESOLVED_COLOR = '#b0bec5';
 const MAX_PIE_SLICES = 19;
 
 interface AllocationPieChartProps {
@@ -35,13 +37,26 @@ interface ChartEntry {
   readonly name: string;
   readonly value: number;
   readonly percentage: number;
+  readonly fill?: string;
 }
+
+// Per-fund aggregate rows are not companies: each kind is summed into one
+// slice that is always shown, after the company slices.
+const AGGREGATE_SLICES: readonly {
+  readonly kind: AllocationKind;
+  readonly name: string;
+  readonly fill: string;
+}[] = [
+  { kind: 'non-equity', name: 'Non-equity', fill: NON_EQUITY_COLOR },
+  { kind: 'unresolved', name: 'Unclassified', fill: UNRESOLVED_COLOR },
+  { kind: 'unknown', name: 'Unknown', fill: UNKNOWN_COLOR },
+];
 
 function toChartData(
   viewMode: ViewMode,
   allocations: readonly FlattenedAllocation[],
   tagBreakdown: readonly TagBreakdownEntry[],
-): { entries: ChartEntry[]; hasEverythingElse: boolean; hasUnknown: boolean } {
+): ChartEntry[] {
   if (viewMode.kind === 'tag') {
     const visible = tagBreakdown.slice(0, MAX_PIE_SLICES);
     const overflow = tagBreakdown.slice(MAX_PIE_SLICES);
@@ -54,22 +69,27 @@ function toChartData(
     }));
 
     if (hasEverythingElse) {
-      entries.push({
-        name: 'Everything else',
-        value: overflow.reduce(
-          (s, e) => s + e.totalValueCents, 0,
-        ),
-        percentage: overflow.reduce(
-          (s, e) => s + e.percentage, 0,
-        ),
-      });
+      return [
+        ...entries,
+        {
+          name: 'Everything else',
+          value: overflow.reduce(
+            (s, e) => s + e.totalValueCents, 0,
+          ),
+          percentage: overflow.reduce(
+            (s, e) => s + e.percentage, 0,
+          ),
+          fill: EVERYTHING_ELSE_COLOR,
+        },
+      ];
     }
 
-    return { entries, hasEverythingElse, hasUnknown: false };
+    return entries;
   }
 
-  const unknownAllocations = allocations.filter((a) => a.isUnknown);
-  const knownAllocations = allocations.filter((a) => !a.isUnknown);
+  const knownAllocations = allocations.filter(
+    (a) => a.kind === 'security',
+  );
 
   const filtered = filterSmallAllocations(knownAllocations);
   const visible = filtered.visible.map((a) => ({
@@ -81,7 +101,7 @@ function toChartData(
   let restValue = filtered.hiddenValueCents;
   let restPercentage = filtered.hiddenPercentage;
 
-  const entries = visible.slice(0, MAX_PIE_SLICES);
+  const entries: ChartEntry[] = visible.slice(0, MAX_PIE_SLICES);
   for (const overflow of visible.slice(MAX_PIE_SLICES)) {
     restValue += overflow.value;
     restPercentage += overflow.percentage;
@@ -96,23 +116,22 @@ function toChartData(
       name: 'Everything else',
       value: restValue,
       percentage: restPercentage,
+      fill: EVERYTHING_ELSE_COLOR,
     });
   }
 
-  const hasUnknown = unknownAllocations.length > 0;
-  if (hasUnknown) {
-    entries.push({
-      name: 'Unknown',
-      value: unknownAllocations.reduce(
-        (s, a) => s + a.totalValueCents, 0,
-      ),
-      percentage: unknownAllocations.reduce(
-        (s, a) => s + a.percentage, 0,
-      ),
-    });
-  }
+  const aggregateEntries = AGGREGATE_SLICES.flatMap(({ kind, name, fill }) => {
+    const rows = allocations.filter((a) => a.kind === kind);
+    if (rows.length === 0) return [];
+    return [{
+      name,
+      value: rows.reduce((s, a) => s + a.totalValueCents, 0),
+      percentage: rows.reduce((s, a) => s + a.percentage, 0),
+      fill,
+    }];
+  });
 
-  return { entries, hasEverythingElse, hasUnknown };
+  return [...entries, ...aggregateEntries];
 }
 
 function renderLabel(props: PieLabelRenderProps): string {
@@ -127,7 +146,7 @@ export function AllocationPieChart({
   allocations,
   tagBreakdown,
 }: AllocationPieChartProps) {
-  const { entries: data, hasEverythingElse, hasUnknown } = useMemo(
+  const data = useMemo(
     () => toChartData(viewMode, allocations, tagBreakdown),
     [viewMode, allocations, tagBreakdown],
   );
@@ -147,25 +166,12 @@ export function AllocationPieChart({
             outerRadius={160}
             label={renderLabel}
           >
-            {data.map((entry, index) => {
-              const isUnknown =
-                hasUnknown && index === data.length - 1;
-              const isEverythingElse =
-                hasEverythingElse
-                && index === data.length - (hasUnknown ? 2 : 1);
-              return (
-                <Cell
-                  key={entry.name}
-                  fill={
-                    isUnknown
-                      ? UNKNOWN_COLOR
-                      : isEverythingElse
-                      ? EVERYTHING_ELSE_COLOR
-                      : COLORS[index % COLORS.length]
-                  }
-                />
-              );
-            })}
+            {data.map((entry, index) => (
+              <Cell
+                key={entry.name}
+                fill={entry.fill ?? COLORS[index % COLORS.length]}
+              />
+            ))}
           </Pie>
           <Tooltip
             formatter={(

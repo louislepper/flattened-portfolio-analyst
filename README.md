@@ -44,6 +44,9 @@ META,3,712.50
 - `ticker` and `quantity` are required; a third price column is an optional per-share
   override in USD (otherwise the app looks the price up).
 - Duplicate tickers are summed.
+- Rows that can't be imported (no ticker, a missing or non-numeric quantity, or a
+  quantity of zero or less) are skipped and listed after import. Negative rows such as
+  a margin loan are not netted off the total.
 
 You can also add holdings one at a time in the UI. Results are shown as a flattened
 allocation list, a pie chart, and a concentration bar, and can be grouped by tags such
@@ -66,7 +69,16 @@ at once and stampede the upstream API. Only securities the user holds are refres
 the client fetches ETF constituents with `X-Price-Refresh: skip`, since their value comes
 from the ETF's own price and Finnhub's free tier allows just 60 calls a minute. A
 holding whose price is still 0 is reported as a failed lookup rather than valued at
-$0.00. App Check gates the API, with its enforcement
+$0.00; a failed holding without a CSV price is left out of the total and percentages,
+and the results say so.
+
+Only an ETF's `equity` constituents are looked up for tags (each constituent carries a
+`kind` from the data pipeline). Bonds, cash, futures and unidentified holdings keep the
+provider's raw ticker, which can collide with a real security (US Treasuries as `T`
+would otherwise pick up AT&T's tags), so they are shown as one "Non-equity holdings" or
+"Unclassified holdings" row per fund instead. Constituent lookups run in the
+background in batches; a transient failure (network error, 5xx, 429) is retried once,
+and while they run the tag view notes that its split is provisional. App Check gates the API, with its enforcement
 mode driven by a LaunchDarkly flag — see [LAUNCHDARKLY.md](LAUNCHDARKLY.md).
 
 ## Development

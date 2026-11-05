@@ -61,7 +61,10 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
-          description: Security not found
+          description: >
+            Security not found. Publicly cacheable for one day
+            (`Cache-Control: public, max-age=86400`), so a ticker added by a
+            later data refresh becomes visible within a day.
           content:
             application/json:
               schema:
@@ -122,6 +125,20 @@ components:
             Timestamp when this composite security entry
             was last updated
           example: "2026-03-01T12:00:00Z"
+        kind:
+          type: string
+          enum:
+            - equity
+            - non-equity
+            - unresolved
+          description: >
+            How the data pipeline classified this constituent. Only `equity`
+            constituents have a security document to look up; `non-equity`
+            (bonds, cash, futures, derivatives) and `unresolved` entries keep
+            the raw provider string as `ticker`, which may collide with an
+            unrelated security's ticker. Absent on documents written before
+            the field existed; clients treat a missing kind as `equity`.
+          example: equity
 
     SecurityResponse:
       type: object
