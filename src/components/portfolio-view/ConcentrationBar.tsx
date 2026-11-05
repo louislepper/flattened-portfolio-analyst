@@ -3,10 +3,12 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import type { FlattenedAllocation } from '../../domain/types';
 import { filterSmallAllocations } from '../../domain/display-filter';
+import { isSecurityRow } from '../../domain/aggregation';
 import { formatPercentage } from '../../utils/format';
 import { colors, segmentColors, resolvingHatch } from '../../theme/tokens';
 
 const MAX_SEGMENTS = 7;
+const NON_COMPANY_COLOR = '#b9c2c9';
 const RESOLVING_HATCH_SWATCH =
   'repeating-linear-gradient(135deg,#d8d0c0,#d8d0c0 3px,#eee7da 3px,#eee7da 6px)';
 
@@ -21,11 +23,16 @@ interface Segment {
 }
 
 export function ConcentrationBar({ allocations }: ConcentrationBarProps) {
-  const { segments, elsePct, resolvingPct } = useMemo(() => {
-    const known = allocations.filter((a) => !a.isUnknown);
-    const resolving = allocations
-      .filter((a) => a.isUnknown)
-      .reduce((sum, a) => sum + a.percentage, 0);
+  const { segments, elsePct, resolvingPct, nonCompanyPct } = useMemo(() => {
+    const known = allocations.filter(isSecurityRow);
+    const sumOf = (rows: readonly FlattenedAllocation[]) =>
+      rows.reduce((sum, a) => sum + a.percentage, 0);
+    const resolving = sumOf(allocations.filter((a) => a.kind === 'unknown'));
+    // Bonds, cash, futures and unidentified fund holdings: not companies, so
+    // never a company segment, but shown rather than hidden in "else".
+    const nonCompany = sumOf(allocations.filter(
+      (a) => a.kind === 'non-equity' || a.kind === 'unresolved',
+    ));
 
     const visible = filterSmallAllocations(known).visible;
     const top = visible.slice(0, MAX_SEGMENTS);
@@ -36,12 +43,16 @@ export function ConcentrationBar({ allocations }: ConcentrationBarProps) {
     }));
 
     const topSum = segs.reduce((s, x) => s + x.pct, 0);
-    const elsePctValue = Math.max(0, 100 - topSum - resolving * 100);
+    const elsePctValue = Math.max(
+      0,
+      100 - topSum - resolving * 100 - nonCompany * 100,
+    );
 
     return {
       segments: segs,
       elsePct: elsePctValue,
       resolvingPct: resolving * 100,
+      nonCompanyPct: nonCompany * 100,
     };
   }, [allocations]);
 
@@ -71,6 +82,9 @@ export function ConcentrationBar({ allocations }: ConcentrationBarProps) {
           />
         ))}
         <Box sx={{ width: `${elsePct}%`, bgcolor: '#d2ccbf' }} />
+        {nonCompanyPct > 0 && (
+          <Box sx={{ width: `${nonCompanyPct}%`, bgcolor: NON_COMPANY_COLOR }} />
+        )}
         {resolvingPct > 0 && (
           <Box sx={{ width: `${resolvingPct}%`, background: resolvingHatch }} />
         )}
@@ -89,10 +103,17 @@ export function ConcentrationBar({ allocations }: ConcentrationBarProps) {
           label="Everything else"
           pct={formatPercentage(elsePct / 100)}
         />
+        {nonCompanyPct > 0 && (
+          <LegendItem
+            swatch={NON_COMPANY_COLOR}
+            label="Non-equity & unclassified"
+            pct={formatPercentage(nonCompanyPct / 100)}
+          />
+        )}
         {resolvingPct > 0 && (
           <LegendItem
             swatch={RESOLVING_HATCH_SWATCH}
-            label="Still resolving"
+            label="Undisclosed"
             pct={formatPercentage(resolvingPct / 100)}
           />
         )}

@@ -16,6 +16,7 @@ import type { FlattenedAllocation } from '../../domain/types';
 import type { TagBreakdownEntry } from '../../domain/types';
 import type { ViewMode } from '../../domain/types';
 import { filterSmallAllocations } from '../../domain/display-filter';
+import { countCompanies, isSecurityRow } from '../../domain/aggregation';
 import {
   formatPercentage,
   formatDollars,
@@ -262,13 +263,13 @@ export function AllocationList({
 
   const unknownPercentage = useMemo(
     () => allocations
-      .filter((a) => a.isUnknown)
+      .filter((a) => a.kind === 'unknown')
       .reduce((sum, a) => sum + a.percentage, 0),
     [allocations],
   );
 
   const distinctCompanies = useMemo(
-    () => allocations.filter((a) => !a.isUnknown).length,
+    () => countCompanies(allocations),
     [allocations],
   );
 
@@ -511,7 +512,7 @@ export function AllocationList({
                   {a.ticker}
                 </Box>
                 <Box sx={{ ...numSx, fontSize: 11.5, color: '#9a9a8e' }}>
-                  {a.isUnknown || a.price === null
+                  {!isSecurityRow(a) || a.price === null
                     ? 'undisclosed'
                     : `${formatShares(a.totalValueCents / a.price)} sh`}
                 </Box>
@@ -671,7 +672,7 @@ export function AllocationList({
                   {a.ticker}
                 </TableCell>
                 <TableCell align="right" sx={numSx}>
-                  {a.isUnknown || a.price === null
+                  {!isSecurityRow(a) || a.price === null
                     ? '-'
                     : formatShares(
                       a.totalValueCents / a.price,

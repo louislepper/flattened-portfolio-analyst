@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { flattenPortfolio } from './aggregation';
+import { countCompanies, flattenPortfolio } from './aggregation';
 import type { SecurityResponse } from '../api/types';
 import type { Holding } from './types';
 
@@ -70,8 +70,8 @@ describe('flattenPortfolio', () => {
     expect(goog.totalValueCents).toBeCloseTo(110000);
     expect(goog.percentage).toBeCloseTo(0.733, 2);
     expect(goog.price).toBe(10000);
-    expect(goog.tagsLoaded).toBe(true);
-    expect(goog.isUnknown).toBe(false);
+    expect(goog.tagStatus).toBe('loaded');
+    expect(goog.kind).toBe('security');
 
     const msft = result.find((r) => r.ticker === 'MSFT')!;
     expect(msft.shareCount).toBe(0);
@@ -79,8 +79,8 @@ describe('flattenPortfolio', () => {
     expect(msft.totalValueCents).toBeCloseTo(40000);
     expect(msft.percentage).toBeCloseTo(0.267, 2);
     expect(msft.price).toBe(null);
-    expect(msft.tagsLoaded).toBe(false);
-    expect(msft.isUnknown).toBe(false);
+    expect(msft.tagStatus).toBe('pending');
+    expect(msft.kind).toBe('security');
 
     expect(result[0].ticker).toBe('GOOG');
   });
@@ -246,8 +246,8 @@ describe('flattenPortfolio', () => {
     expect(goog.totalValueCents).toBe(150000);
     expect(goog.percentage).toBeCloseTo(0.6);
     expect(goog.price).toBe(15000);
-    expect(goog.tagsLoaded).toBe(true);
-    expect(goog.isUnknown).toBe(false);
+    expect(goog.tagStatus).toBe('loaded');
+    expect(goog.kind).toBe('security');
 
     const aapl = result.find((r) => r.ticker === 'AAPL')!;
     expect(aapl.shareCount).toBe(5);
@@ -382,7 +382,7 @@ describe('flattenPortfolio', () => {
         expect(goog.valueCentsFromComponents)
           .toBeCloseTo(80000);
         expect(goog.totalValueCents).toBeCloseTo(80000);
-        expect(goog.isUnknown).toBe(false);
+        expect(goog.kind).toBe('security');
 
         const aapl = result.find(
           (r) => r.ticker === 'AAPL',
@@ -390,16 +390,16 @@ describe('flattenPortfolio', () => {
         expect(aapl.valueCentsFromComponents)
           .toBeCloseTo(40000);
         expect(aapl.totalValueCents).toBeCloseTo(40000);
-        expect(aapl.isUnknown).toBe(false);
+        expect(aapl.kind).toBe('security');
 
-        const unknown = result.find((r) => r.isUnknown)!;
+        const unknown = result.find((r) => r.kind === 'unknown')!;
         expect(unknown.ticker).toBe(
           'Unknown (From PARTIAL)',
         );
         expect(unknown.totalValueCents).toBeCloseTo(80000);
         expect(unknown.shareCount).toBe(0);
         expect(unknown.tags).toEqual([]);
-        expect(unknown.tagsLoaded).toBe(true);
+        expect(unknown.tagStatus).toBe('loaded');
         expect(unknown.percentage).toBeCloseTo(0.4);
         expect(unknown.components).toHaveLength(1);
         expect(unknown.components[0].fromTicker)
@@ -433,7 +433,7 @@ describe('flattenPortfolio', () => {
         expect(result[0].totalValueCents).toBeCloseTo(75000);
         expect(result[0].percentage).toBeCloseTo(1.0);
         expect(result[0].shareCount).toBe(0);
-        expect(result[0].isUnknown).toBe(true);
+        expect(result[0].kind).toBe('unknown');
       },
     );
 
@@ -482,19 +482,19 @@ describe('flattenPortfolio', () => {
           (r) => r.ticker === 'Unknown (From ETF_A)',
         )!;
         expect(unknownA.totalValueCents).toBeCloseTo(10000);
-        expect(unknownA.isUnknown).toBe(true);
+        expect(unknownA.kind).toBe('unknown');
 
         const unknownB = result.find(
           (r) => r.ticker === 'Unknown (From ETF_B)',
         )!;
         expect(unknownB.totalValueCents).toBeCloseTo(14000);
-        expect(unknownB.isUnknown).toBe(true);
+        expect(unknownB.kind).toBe('unknown');
 
         const goog = result.find(
           (r) => r.ticker === 'GOOG',
         )!;
         expect(goog.totalValueCents).toBeCloseTo(16000);
-        expect(goog.isUnknown).toBe(false);
+        expect(goog.kind).toBe('security');
       },
     );
 
@@ -525,7 +525,7 @@ describe('flattenPortfolio', () => {
         // GOOG: 70000, unknown: 30000
         expect(result).toHaveLength(2);
 
-        const unknown = result.find((r) => r.isUnknown)!;
+        const unknown = result.find((r) => r.kind === 'unknown')!;
         expect(unknown.totalValueCents).toBeCloseTo(30000);
         expect(unknown.percentage).toBeCloseTo(0.3);
       },
@@ -561,7 +561,7 @@ describe('flattenPortfolio', () => {
 
         expect(result).toHaveLength(2);
         expect(
-          result.every((r) => !r.isUnknown),
+          result.every((r) => r.kind !== 'unknown'),
         ).toBe(true);
       },
     );
@@ -612,7 +612,7 @@ describe('flattenPortfolio', () => {
         expect(goog.totalValueCents).toBeCloseTo(150000);
         expect(goog.percentage).toBeCloseTo(0.75);
 
-        const unknown = result.find((r) => r.isUnknown)!;
+        const unknown = result.find((r) => r.kind === 'unknown')!;
         expect(unknown.totalValueCents).toBeCloseTo(50000);
         expect(unknown.percentage).toBeCloseTo(0.25);
       },
@@ -668,7 +668,7 @@ describe('flattenPortfolio', () => {
         expect(result).toHaveLength(1);
         const goog = result[0];
         expect(goog.price).toBe(15000);
-        expect(goog.tagsLoaded).toBe(true);
+        expect(goog.tagStatus).toBe('loaded');
         expect(goog.tags).toEqual([
           {
             key: 'sector',
@@ -723,7 +723,7 @@ describe('flattenPortfolio', () => {
         expect(result).toHaveLength(1);
         const goog = result[0];
         expect(goog.price).toBe(15000);
-        expect(goog.tagsLoaded).toBe(true);
+        expect(goog.tagStatus).toBe('loaded');
       },
     );
 
@@ -770,12 +770,12 @@ describe('flattenPortfolio', () => {
           .toBeCloseTo(50000);
         expect(goog.totalValueCents).toBeCloseTo(150000);
         expect(goog.price).toBe(10000);
-        expect(goog.tagsLoaded).toBe(true);
+        expect(goog.tagStatus).toBe('loaded');
       },
     );
 
     it(
-      'shows null price and tagsLoaded=false when no data',
+      'shows null price and tagStatus=pending when no data',
       () => {
         const holdings: Holding[] = [
           { ticker: 'ETF', quantity: 5 },
@@ -801,7 +801,7 @@ describe('flattenPortfolio', () => {
         expect(result).toHaveLength(1);
         const goog = result[0];
         expect(goog.price).toBe(null);
-        expect(goog.tagsLoaded).toBe(false);
+        expect(goog.tagStatus).toBe('pending');
         expect(goog.tags).toEqual([]);
       },
     );
@@ -1017,5 +1017,406 @@ describe('flattenPortfolio', () => {
     const a = result.find((r) => r.ticker === 'A');
     expect(a?.price).toBeNull();
     expect(a?.totalValueCents).toBe(10000);
+  });
+});
+
+describe('flattenPortfolio constituent kinds', () => {
+  const constituent = (
+    ticker: string,
+    percentage: number,
+    kind?: 'equity' | 'non-equity' | 'unresolved',
+  ) => ({
+    ticker,
+    isin: null,
+    percentage,
+    refreshedAt: REFRESHED_AT,
+    ...(kind ? { kind } : {}),
+  });
+
+  const att = makeStock({
+    ticker: 'T',
+    price: 2000,
+    tags: [{ key: 'sector', name: 'Sector', value: 'Telecom' }],
+  });
+
+  const byTicker = (result: ReturnType<typeof flattenPortfolio>) =>
+    new Map(result.map((r) => [r.ticker, r]));
+
+  it(
+    'keeps a bond fund\'s Treasuries ("T") apart from a direct AT&T holding',
+    () => {
+      const holdings: Holding[] = [
+        { ticker: 'T', quantity: 10 },
+        { ticker: 'GOVI', quantity: 1 },
+      ];
+      const dataMap = new Map([
+        ['T', att],
+        ['GOVI', makeEtf({
+          ticker: 'GOVI',
+          price: 100000,
+          compositeSecurities: [
+            constituent('T', 0.9, 'non-equity'),
+            constituent('B', 0.1, 'non-equity'),
+          ],
+        })],
+      ]);
+
+      const rows = byTicker(flattenPortfolio(holdings, dataMap));
+
+      const attRow = rows.get('T')!;
+      expect(attRow.kind).toBe('security');
+      expect(attRow.totalValueCents).toBe(20000);
+      expect(attRow.components).toEqual([
+        { fromTicker: 'T', valueCents: 20000 },
+      ]);
+      const bonds = rows.get('Non-equity holdings (from GOVI)')!;
+      expect(bonds.kind).toBe('non-equity');
+      expect(bonds.totalValueCents).toBeCloseTo(100000);
+      expect(bonds.tagStatus).toBe('loaded');
+      expect(bonds.tags).toEqual([]);
+      expect(bonds.price).toBeNull();
+      expect(rows.has('B')).toBe(false);
+      expect(rows.size).toBe(2);
+    },
+  );
+
+  it('does not borrow a colliding doc\'s tags for non-equity constituents', () => {
+    const holdings: Holding[] = [{ ticker: 'GOVI', quantity: 1 }];
+    const dataMap = new Map([
+      ['GOVI', makeEtf({
+        ticker: 'GOVI',
+        price: 1000,
+        compositeSecurities: [constituent('T', 1, 'non-equity')],
+      })],
+    ]);
+    // AT&T's doc is in the composite map (e.g. from another fund).
+    const compositeMap = new Map([['T', att]]);
+
+    const result = flattenPortfolio(holdings, dataMap, compositeMap);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].kind).toBe('non-equity');
+    expect(result[0].tags).toEqual([]);
+  });
+
+  it('aggregates unresolved constituents into one row per fund', () => {
+    const holdings: Holding[] = [
+      { ticker: 'IEFA', quantity: 1 },
+      { ticker: 'VXUS', quantity: 1 },
+    ];
+    const dataMap = new Map([
+      ['IEFA', makeEtf({
+        ticker: 'IEFA',
+        price: 10000,
+        compositeSecurities: [
+          constituent('XS1', 0.3, 'unresolved'),
+          constituent('XS2', 0.2, 'unresolved'),
+          constituent('AAPL', 0.5, 'equity'),
+        ],
+      })],
+      ['VXUS', makeEtf({
+        ticker: 'VXUS',
+        price: 20000,
+        compositeSecurities: [
+          constituent('XS1', 0.5, 'unresolved'),
+          constituent('AAPL', 0.5, 'equity'),
+        ],
+      })],
+    ]);
+
+    const rows = byTicker(flattenPortfolio(holdings, dataMap));
+
+    expect(rows.get('Unclassified holdings (from IEFA)')).toMatchObject({
+      kind: 'unresolved',
+      totalValueCents: 5000,
+      components: [{ fromTicker: 'IEFA', valueCents: 5000 }],
+    });
+    expect(rows.get('Unclassified holdings (from VXUS)')).toMatchObject({
+      kind: 'unresolved',
+      totalValueCents: 10000,
+    });
+    expect(rows.has('XS1')).toBe(false);
+    expect(rows.get('AAPL')!.totalValueCents).toBe(15000);
+  });
+
+  it(
+    'shows non-equity, unclassified and unknown remainder rows side by side',
+    () => {
+      const holdings: Holding[] = [{ ticker: 'MIX', quantity: 1 }];
+      const dataMap = new Map([
+        ['MIX', makeEtf({
+          ticker: 'MIX',
+          price: 100000,
+          compositeSecurities: [
+            constituent('AAPL', 0.4, 'equity'),
+            constituent('T', 0.2, 'non-equity'),
+            constituent('ESZ6', 0.1, 'non-equity'),
+            constituent('XS1', 0.1, 'unresolved'),
+          ],
+        })],
+      ]);
+
+      const result = flattenPortfolio(holdings, dataMap);
+      const rows = byTicker(result);
+
+      expect(rows.get('AAPL')!.totalValueCents).toBeCloseTo(40000);
+      expect(rows.get('Non-equity holdings (from MIX)')!.totalValueCents)
+        .toBeCloseTo(30000);
+      expect(rows.get('Unclassified holdings (from MIX)')!.totalValueCents)
+        .toBeCloseTo(10000);
+      const unknown = rows.get('Unknown (From MIX)')!;
+      expect(unknown.kind).toBe('unknown');
+      expect(unknown.totalValueCents).toBeCloseTo(20000);
+      const totalPct = result.reduce((s, r) => s + r.percentage, 0);
+      expect(totalPct).toBeCloseTo(1);
+      const totalValue = result.reduce((s, r) => s + r.totalValueCents, 0);
+      expect(totalValue).toBeCloseTo(100000);
+    },
+  );
+
+  it('splits a ticker that is equity in one fund and non-equity in another', () => {
+    const holdings: Holding[] = [
+      { ticker: 'SPY', quantity: 1 },
+      { ticker: 'GOVI', quantity: 1 },
+    ];
+    const dataMap = new Map([
+      ['SPY', makeEtf({
+        ticker: 'SPY',
+        price: 10000,
+        compositeSecurities: [constituent('T', 1, 'equity')],
+      })],
+      ['GOVI', makeEtf({
+        ticker: 'GOVI',
+        price: 30000,
+        compositeSecurities: [constituent('T', 1, 'non-equity')],
+      })],
+    ]);
+    const compositeMap = new Map([['T', att]]);
+
+    const rows = byTicker(flattenPortfolio(holdings, dataMap, compositeMap));
+
+    expect(rows.get('T')).toMatchObject({
+      kind: 'security',
+      totalValueCents: 10000,
+      components: [{ fromTicker: 'SPY', valueCents: 10000 }],
+      tagStatus: 'loaded',
+    });
+    expect(rows.get('Non-equity holdings (from GOVI)')).toMatchObject({
+      kind: 'non-equity',
+      totalValueCents: 30000,
+    });
+  });
+
+  it('accumulates the same fund held twice into its aggregate rows', () => {
+    const holdings: Holding[] = [
+      { ticker: 'GOVI', quantity: 1 },
+      { ticker: 'GOVI', quantity: 2 },
+    ];
+    const dataMap = new Map([
+      ['GOVI', makeEtf({
+        ticker: 'GOVI',
+        price: 1000,
+        compositeSecurities: [
+          constituent('T', 0.5, 'non-equity'),
+          constituent('XS1', 0.25, 'unresolved'),
+          constituent('AAPL', 0.25, 'equity'),
+        ],
+      })],
+    ]);
+
+    const result = flattenPortfolio(holdings, dataMap);
+    const rows = byTicker(result);
+
+    expect(result).toHaveLength(3);
+    expect(rows.get('Non-equity holdings (from GOVI)')!.totalValueCents)
+      .toBe(1500);
+    expect(rows.get('Non-equity holdings (from GOVI)')!.components)
+      .toHaveLength(2);
+    expect(rows.get('Unclassified holdings (from GOVI)')!.totalValueCents)
+      .toBe(750);
+    expect(rows.get('AAPL')!.totalValueCents).toBe(750);
+  });
+
+  it('treats legacy constituents without kind as equity unless not a ticker', () => {
+    const holdings: Holding[] = [{ ticker: 'OLD', quantity: 1 }];
+    const dataMap = new Map([
+      ['OLD', makeEtf({
+        ticker: 'OLD',
+        price: 10000,
+        compositeSecurities: [
+          constituent('AAPL', 0.5),
+          constituent('UNKNOWN', 0.2),
+          constituent('CASH USD', 0.3),
+        ],
+      })],
+    ]);
+
+    const rows = byTicker(flattenPortfolio(holdings, dataMap));
+
+    expect(rows.get('AAPL')).toMatchObject({
+      kind: 'security',
+      tagStatus: 'pending',
+      totalValueCents: 5000,
+    });
+    expect(rows.get('Unclassified holdings (from OLD)')).toMatchObject({
+      kind: 'unresolved',
+      totalValueCents: 5000,
+    });
+    expect(rows.has('UNKNOWN')).toBe(false);
+    expect(rows.has('CASH USD')).toBe(false);
+  });
+
+  it('gives an all-equity portfolio the same rows with or without kind', () => {
+    const holdings: Holding[] = [
+      { ticker: 'GOOG', quantity: 3 },
+      { ticker: 'ETF', quantity: 2 },
+    ];
+    const legacyEtf = makeEtf({
+      ticker: 'ETF',
+      price: 10000,
+      compositeSecurities: [
+        constituent('GOOG', 0.5),
+        constituent('MSFT', 0.3),
+      ],
+    });
+    const kindEtf = makeEtf({
+      ...legacyEtf,
+      compositeSecurities: legacyEtf.compositeSecurities.map((c) => ({
+        ...c,
+        kind: 'equity' as const,
+      })),
+    });
+    const goog = makeStock({ ticker: 'GOOG', price: 5000 });
+
+    const legacy = flattenPortfolio(
+      holdings,
+      new Map([['GOOG', goog], ['ETF', legacyEtf]]),
+    );
+    const withKind = flattenPortfolio(
+      holdings,
+      new Map([['GOOG', goog], ['ETF', kindEtf]]),
+    );
+
+    expect(withKind).toEqual(legacy);
+    // GOOG: 3 * 5000 + 20000 * 0.5; MSFT: 20000 * 0.3; unknown 20000 * 0.2
+    expect(legacy.map((r) => r.ticker)).toEqual([
+      'GOOG',
+      'MSFT',
+      'Unknown (From ETF)',
+    ]);
+    expect(legacy[0].totalValueCents).toBeCloseTo(25000);
+    expect(legacy[1].totalValueCents).toBeCloseTo(6000);
+    expect(legacy[2].totalValueCents).toBeCloseTo(4000);
+    expect(legacy.reduce((s, r) => s + r.totalValueCents, 0))
+      .toBeCloseTo(35000);
+  });
+});
+
+describe('flattenPortfolio tag status', () => {
+  const etf = makeEtf({
+    ticker: 'ETF',
+    price: 10000,
+    compositeSecurities: [
+      { ticker: 'AAPL', isin: null, percentage: 0.5, refreshedAt: REFRESHED_AT },
+      { ticker: 'MSFT', isin: null, percentage: 0.5, refreshedAt: REFRESHED_AT },
+    ],
+  });
+  const holdings: Holding[] = [{ ticker: 'ETF', quantity: 1 }];
+
+  it('marks constituents pending, failed or loaded', () => {
+    const result = flattenPortfolio(
+      holdings,
+      new Map([['ETF', etf]]),
+      new Map([['AAPL', makeStock({ ticker: 'AAPL', price: 100 })]]),
+      new Set(['MSFT']),
+    );
+    const status = Object.fromEntries(
+      result.map((r) => [r.ticker, r.tagStatus]),
+    );
+
+    expect(status).toEqual({ AAPL: 'loaded', MSFT: 'failed' });
+  });
+
+  it('keeps the failed constituent in the total', () => {
+    const result = flattenPortfolio(
+      holdings,
+      new Map([['ETF', etf]]),
+      new Map(),
+      new Set(['AAPL', 'MSFT']),
+    );
+
+    expect(result.reduce((s, r) => s + r.totalValueCents, 0)).toBe(10000);
+    expect(result.every((r) => r.tagStatus === 'failed')).toBe(true);
+  });
+
+  it('marks a direct holding with an override price but failed lookup as failed', () => {
+    const result = flattenPortfolio(
+      [{ ticker: 'ZZZZ', quantity: 2 }],
+      new Map([['ZZZZ', makeStock({ ticker: 'ZZZZ', price: 500 })]]),
+      new Map(),
+      new Set(['ZZZZ']),
+    );
+
+    expect(result[0]).toMatchObject({
+      ticker: 'ZZZZ',
+      kind: 'security',
+      tagStatus: 'failed',
+      totalValueCents: 1000,
+    });
+  });
+
+  it('prefers loaded data when a ticker is both a direct holding and a constituent', () => {
+    const msft = makeStock({
+      ticker: 'MSFT',
+      price: 100,
+      tags: [{ key: 'sector', name: 'Sector', value: 'Tech' }],
+    });
+    const result = flattenPortfolio(
+      [...holdings, { ticker: 'MSFT', quantity: 1 }],
+      new Map([['ETF', etf], ['MSFT', msft]]),
+      new Map(),
+      new Set(['AAPL']),
+    );
+    const msftRow = result.find((r) => r.ticker === 'MSFT')!;
+
+    expect(msftRow.tagStatus).toBe('loaded');
+    expect(msftRow.tags).toEqual(msft.tags);
+  });
+
+  it('leaves a holding with no security data out of the total', () => {
+    const result = flattenPortfolio(
+      [{ ticker: 'GOOG', quantity: 1 }, { ticker: 'GONE', quantity: 100 }],
+      new Map([['GOOG', makeStock({ ticker: 'GOOG', price: 1000 })]]),
+      new Map(),
+      new Set(['GONE']),
+    );
+
+    expect(result).toHaveLength(1);
+    expect(result[0].percentage).toBe(1);
+  });
+});
+
+describe('countCompanies', () => {
+  it('counts only security rows whose lookup did not fail', () => {
+    const result = flattenPortfolio(
+      [{ ticker: 'MIX', quantity: 1 }],
+      new Map([['MIX', makeEtf({
+        ticker: 'MIX',
+        price: 10000,
+        compositeSecurities: [
+          { ticker: 'AAPL', isin: null, percentage: 0.2, refreshedAt: REFRESHED_AT, kind: 'equity' },
+          { ticker: 'MSFT', isin: null, percentage: 0.2, refreshedAt: REFRESHED_AT, kind: 'equity' },
+          { ticker: 'GONE', isin: null, percentage: 0.2, refreshedAt: REFRESHED_AT, kind: 'equity' },
+          { ticker: 'ESZ6', isin: null, percentage: 0.2, refreshedAt: REFRESHED_AT, kind: 'non-equity' },
+          { ticker: 'XS1', isin: null, percentage: 0.1, refreshedAt: REFRESHED_AT, kind: 'unresolved' },
+        ],
+      })]]),
+      new Map([['AAPL', makeStock({ ticker: 'AAPL', price: 1 })]]),
+      new Set(['GONE']),
+    );
+
+    // AAPL (loaded) + MSFT (pending); not GONE, non-equity, unclassified, unknown
+    expect(result).toHaveLength(6);
+    expect(countCompanies(result)).toBe(2);
   });
 });

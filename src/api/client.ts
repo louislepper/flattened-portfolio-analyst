@@ -14,6 +14,13 @@ const PRICE_REFRESH_SKIP = 'skip';
 // Without it a hung request leaves the UI spinning with no way out.
 const REQUEST_TIMEOUT_MS = 15000;
 
+// One retry absorbs a blip (a dropped connection, a cold-start 503, a burst
+// that tripped rate limiting) without doubling the load of a real outage.
+const TRANSIENT_RETRY_ATTEMPTS = 1;
+const TRANSIENT_RETRY_DELAY_MS = 500;
+const HTTP_TOO_MANY_REQUESTS = 429;
+const HTTP_SERVER_ERROR_MIN = 500;
+
 export class ApiError extends Error {
   readonly status: number;
 
@@ -57,6 +64,41 @@ export async function fetchSecurity(
   return response.json();
 }
 
+/**
+ * Whether a lookup failure is worth retrying: network errors and timeouts
+ * (anything that is not an HTTP response), 5xx and 429. A 404 or other 4xx is
+ * a definite answer and is not retried.
+ */
+export function isTransientError(error: unknown): boolean {
+  if (!(error instanceof ApiError)) return true;
+  return error.status === HTTP_TOO_MANY_REQUESTS
+    || error.status >= HTTP_SERVER_ERROR_MIN;
+}
+
+const delay = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+export interface RetryOptions {
+  readonly retryDelayMs?: number;
+}
+
+/** {@link fetchSecurity}, retried once after a transient failure. */
+export async function fetchSecurityWithRetry(
+  ticker: string,
+  options: FetchSecurityOptions & RetryOptions = {},
+): Promise<SecurityResponse> {
+  const attempt = async (retriesLeft: number): Promise<SecurityResponse> => {
+    try {
+      return await fetchSecurity(ticker, options);
+    } catch (error) {
+      if (retriesLeft <= 0 || !isTransientError(error)) throw error;
+      await delay(options.retryDelayMs ?? TRANSIENT_RETRY_DELAY_MS);
+      return attempt(retriesLeft - 1);
+    }
+  };
+  return attempt(TRANSIENT_RETRY_ATTEMPTS);
+}
+
 export interface FetchSecuritiesResult {
   readonly successes: ReadonlyMap<string, SecurityResponse>;
   readonly failures: ReadonlyMap<string, Error>;
@@ -64,11 +106,12 @@ export interface FetchSecuritiesResult {
 
 export async function fetchSecurities(
   tickers: readonly string[],
+  options: FetchSecurityOptions & RetryOptions = {},
 ): Promise<FetchSecuritiesResult> {
   const results = await Promise.allSettled(
     tickers.map(async (ticker) => ({
       ticker,
-      data: await fetchSecurity(ticker),
+      data: await fetchSecurityWithRetry(ticker, options),
     })),
   );
 

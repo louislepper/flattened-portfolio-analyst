@@ -1,6 +1,7 @@
 import { createContext } from 'react';
 import type { SecurityResponse } from '../api/types';
 import type {
+  ConstituentLoadStatus,
   Holding,
   PortfolioPhase,
   ViewMode,
@@ -15,7 +16,14 @@ export interface PortfolioState {
   >;
   readonly phase: PortfolioPhase;
   readonly errorMessage: string | null;
+  /** User holdings whose lookup failed or returned no price. */
   readonly failedTickers: readonly string[];
+  /** Background lookups of ETF constituents' tags. */
+  readonly constituentLoadStatus: ConstituentLoadStatus;
+  /** Equity constituents queued for lookup in the current analysis. */
+  readonly constituentLookupCount: number;
+  /** Constituents whose lookup failed, after any retry. */
+  readonly failedConstituentTickers: ReadonlySet<string>;
   readonly viewMode: ViewMode;
 }
 

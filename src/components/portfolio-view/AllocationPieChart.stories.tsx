@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { AllocationPieChart } from './AllocationPieChart';
+import type { FlattenedAllocation } from '../../domain/types';
 
-const SAMPLE_ALLOCATIONS = [
+const SAMPLE_ALLOCATIONS: FlattenedAllocation[] = [
   {
     ticker: 'GOOG',
     shareCount: 10,
@@ -10,9 +11,9 @@ const SAMPLE_ALLOCATIONS = [
     percentage: 0.5,
     price: 15000,
     tags: [],
-    tagsLoaded: true,
+    tagStatus: 'loaded',
     components: [],
-    isUnknown: false,
+    kind: 'security',
   },
   {
     ticker: 'MSFT',
@@ -22,9 +23,9 @@ const SAMPLE_ALLOCATIONS = [
     percentage: 0.3,
     price: 40000,
     tags: [],
-    tagsLoaded: true,
+    tagStatus: 'loaded',
     components: [],
-    isUnknown: false,
+    kind: 'security',
   },
   {
     ticker: 'AAPL',
@@ -34,9 +35,9 @@ const SAMPLE_ALLOCATIONS = [
     percentage: 0.2,
     price: 20000,
     tags: [],
-    tagsLoaded: true,
+    tagStatus: 'loaded',
     components: [],
-    isUnknown: false,
+    kind: 'security',
   },
 ];
 
@@ -69,9 +70,9 @@ export const WithEverythingElse: Story = {
         percentage: 0.00005,
         price: null,
         tags: [],
-        tagsLoaded: true,
+        tagStatus: 'loaded',
         components: [],
-        isUnknown: false,
+        kind: 'security',
       },
       {
         ticker: 'TINY_B',
@@ -81,9 +82,9 @@ export const WithEverythingElse: Story = {
         percentage: 0.00003,
         price: null,
         tags: [],
-        tagsLoaded: true,
+        tagStatus: 'loaded',
         components: [],
-        isUnknown: false,
+        kind: 'security',
       },
     ],
     tagBreakdown: [],

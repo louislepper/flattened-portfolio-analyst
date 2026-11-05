@@ -13,9 +13,9 @@ const ALLOCATIONS: FlattenedAllocation[] = [
     percentage: 0.6,
     price: 15000,
     tags: [],
-    tagsLoaded: true,
+    tagStatus: 'loaded',
     components: [],
-    isUnknown: false,
+    kind: 'security',
   },
   {
     ticker: 'MSFT',
@@ -25,9 +25,9 @@ const ALLOCATIONS: FlattenedAllocation[] = [
     percentage: 0.4,
     price: 20000,
     tags: [],
-    tagsLoaded: true,
+    tagStatus: 'loaded',
     components: [],
-    isUnknown: false,
+    kind: 'security',
   },
 ];
 
@@ -72,9 +72,9 @@ describe('AllocationPieChart', () => {
           percentage: (100 - i) / 2150,
           price: 1000,
           tags: [],
-          tagsLoaded: true,
+          tagStatus: 'loaded',
           components: [],
-          isUnknown: false,
+          kind: 'security',
         }));
 
       render(
@@ -115,9 +115,9 @@ describe('AllocationPieChart', () => {
         percentage: 0.05,
         price: null,
         tags: [],
-        tagsLoaded: true,
+        tagStatus: 'loaded',
         components: [],
-        isUnknown: true,
+        kind: 'unknown',
       },
       {
         ticker: 'Unknown (From ETF2)',
@@ -127,9 +127,9 @@ describe('AllocationPieChart', () => {
         percentage: 0.03,
         price: null,
         tags: [],
-        tagsLoaded: true,
+        tagStatus: 'loaded',
         components: [],
-        isUnknown: true,
+        kind: 'unknown',
       },
     ];
 
@@ -156,9 +156,9 @@ describe('AllocationPieChart', () => {
         percentage: 0.9999,
         price: 10000,
         tags: [],
-        tagsLoaded: true,
+        tagStatus: 'loaded',
         components: [],
-        isUnknown: false,
+        kind: 'security',
       },
       {
         ticker: 'Unknown (From ETF1)',
@@ -168,9 +168,9 @@ describe('AllocationPieChart', () => {
         percentage: 0.000001,
         price: null,
         tags: [],
-        tagsLoaded: true,
+        tagStatus: 'loaded',
         components: [],
-        isUnknown: true,
+        kind: 'unknown',
       },
     ];
 
@@ -187,7 +187,7 @@ describe('AllocationPieChart', () => {
 
   it('always shows Unknown even when MAX_PIE_SLICES is exceeded', () => {
     const manyAllocations: FlattenedAllocation[] = [
-      ...Array.from({ length: 25 }, (_, i) => ({
+      ...Array.from({ length: 25 }, (_, i): FlattenedAllocation => ({
         ticker: `STOCK_${i}`,
         shareCount: 100 - i,
         valueCentsFromComponents: 0,
@@ -195,9 +195,9 @@ describe('AllocationPieChart', () => {
         percentage: (100 - i) / 2150,
         price: 1000,
         tags: [],
-        tagsLoaded: true,
+        tagStatus: 'loaded',
         components: [],
-        isUnknown: false,
+        kind: 'security',
       })),
       {
         ticker: 'Unknown (From ETF1)',
@@ -207,9 +207,9 @@ describe('AllocationPieChart', () => {
         percentage: 0.001,
         price: null,
         tags: [],
-        tagsLoaded: true,
+        tagStatus: 'loaded',
         components: [],
-        isUnknown: true,
+        kind: 'unknown',
       },
     ];
 
@@ -262,4 +262,41 @@ describe('AllocationPieChart', () => {
       ).toBeInTheDocument();
     },
   );
+
+  it('sums non-equity and unclassified rows into their own slices', () => {
+    const aggregate = (
+      ticker: string,
+      kind: FlattenedAllocation['kind'],
+    ): FlattenedAllocation => ({
+      ticker,
+      kind,
+      shareCount: 0,
+      valueCentsFromComponents: 10000,
+      totalValueCents: 10000,
+      percentage: 0.1,
+      price: null,
+      tags: [],
+      tagStatus: 'loaded',
+      components: [],
+    });
+
+    render(
+      <AllocationPieChart
+        viewMode={{ kind: 'securities' }}
+        allocations={[
+          ...ALLOCATIONS,
+          aggregate('Non-equity holdings (from A)', 'non-equity'),
+          aggregate('Non-equity holdings (from B)', 'non-equity'),
+          aggregate('Unclassified holdings (from A)', 'unresolved'),
+        ]}
+        tagBreakdown={[]}
+      />,
+    );
+
+    expect(screen.getByText('Non-equity')).toBeInTheDocument();
+    expect(screen.getByText('Unclassified')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Non-equity holdings (from A)'),
+    ).not.toBeInTheDocument();
+  });
 });

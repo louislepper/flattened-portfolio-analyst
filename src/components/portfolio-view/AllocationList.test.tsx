@@ -20,7 +20,7 @@ const ALLOCATIONS: FlattenedAllocation[] = [
         value: 'Large Cap',
       },
     ],
-    tagsLoaded: true,
+    tagStatus: 'loaded',
     components: [
       {
         fromTicker: 'GOOG',
@@ -31,7 +31,7 @@ const ALLOCATIONS: FlattenedAllocation[] = [
         valueCents: 50000,
       },
     ],
-    isUnknown: false,
+    kind: 'security',
   },
   {
     ticker: 'MSFT',
@@ -47,14 +47,14 @@ const ALLOCATIONS: FlattenedAllocation[] = [
         value: 'Large Cap',
       },
     ],
-    tagsLoaded: true,
+    tagStatus: 'loaded',
     components: [
       {
         fromTicker: 'TECH_ETF',
         valueCents: 200000,
       },
     ],
-    isUnknown: false,
+    kind: 'security',
   },
 ];
 
@@ -129,14 +129,14 @@ describe('AllocationList', () => {
         percentage: 0.2,
         price: null,
         tags: [],
-        tagsLoaded: true,
+        tagStatus: 'loaded',
         components: [
           {
             fromTicker: 'PARTIAL_ETF',
             valueCents: 80000,
           },
         ],
-        isUnknown: true,
+        kind: 'unknown',
       },
     ];
     render(
@@ -168,14 +168,14 @@ describe('AllocationList', () => {
         percentage: 1.0,
         price: null,
         tags: [],
-        tagsLoaded: false,
+        tagStatus: 'pending',
         components: [
           {
             fromTicker: 'ETF',
             valueCents: 100000,
           },
         ],
-        isUnknown: false,
+        kind: 'security',
       },
     ];
     render(
@@ -243,9 +243,9 @@ describe('AllocationList', () => {
           percentage: 0.999,
           price: 10000,
           tags: [],
-          tagsLoaded: true,
+          tagStatus: 'loaded',
           components: [],
-          isUnknown: false,
+          kind: 'security',
         },
         {
           ticker: 'TINY_A',
@@ -255,9 +255,9 @@ describe('AllocationList', () => {
           percentage: 0.00005,
           price: null,
           tags: [],
-          tagsLoaded: false,
+          tagStatus: 'pending',
           components: [],
-          isUnknown: false,
+          kind: 'security',
         },
         {
           ticker: 'TINY_B',
@@ -267,9 +267,9 @@ describe('AllocationList', () => {
           percentage: 0.00003,
           price: null,
           tags: [],
-          tagsLoaded: false,
+          tagStatus: 'pending',
           components: [],
-          isUnknown: false,
+          kind: 'security',
         },
       ];
 
@@ -326,9 +326,9 @@ describe('AllocationList', () => {
         percentage: 0.6,
         price: 10000,
         tags: [],
-        tagsLoaded: true,
+        tagStatus: 'loaded',
         components: [],
-        isUnknown: false,
+        kind: 'security',
       },
       {
         ticker: 'Unknown (From ETF_A)',
@@ -338,14 +338,14 @@ describe('AllocationList', () => {
         percentage: 0.4,
         price: null,
         tags: [],
-        tagsLoaded: true,
+        tagStatus: 'loaded',
         components: [
           {
             fromTicker: 'ETF_A',
             valueCents: 40000,
           },
         ],
-        isUnknown: true,
+        kind: 'unknown',
       },
     ];
 
@@ -434,5 +434,48 @@ describe('AllocationList', () => {
 
     expect(screen.getByText('Country 15')).toBeInTheDocument();
     expect(screen.queryByTestId('tag-tail')).not.toBeInTheDocument();
+  });
+
+  it('treats non-equity and unclassified rows as non-companies', () => {
+    const row = (
+      ticker: string,
+      kind: FlattenedAllocation['kind'],
+      percentage: number,
+    ): FlattenedAllocation => ({
+      ticker,
+      kind,
+      shareCount: 0,
+      valueCentsFromComponents: percentage * 100000,
+      totalValueCents: percentage * 100000,
+      percentage,
+      price: null,
+      tags: [],
+      tagStatus: 'loaded',
+      components: [{ fromTicker: 'GOVI', valueCents: percentage * 100000 }],
+    });
+    const allocations: FlattenedAllocation[] = [
+      row('Non-equity holdings (from GOVI)', 'non-equity', 0.5),
+      { ...row('AAPL', 'security', 0.3), price: 1000 },
+      row('Unclassified holdings (from GOVI)', 'unresolved', 0.2),
+    ];
+
+    render(
+      <AllocationList
+        viewMode={{ kind: 'securities' }}
+        allocations={allocations}
+        tagBreakdown={[]}
+      />,
+    );
+
+    const table = screen.getByRole('table');
+    const bondRow = screen
+      .getByText('Non-equity holdings (from GOVI)')
+      .closest('tr')!;
+    expect(bondRow).toHaveTextContent('-');
+    expect(table).toHaveTextContent('Unclassified holdings (from GOVI)');
+    expect(screen.getByText('Distinct companies').parentElement)
+      .toHaveTextContent('1');
+    // Non-equity holdings are known allocations, not undisclosed ones.
+    expect(screen.queryByTestId('unknown-note')).not.toBeInTheDocument();
   });
 });

@@ -10,8 +10,12 @@ export function mapSecurityDocToResponse(
     price: doc.price,
     tags: doc.tags,
     compositeSecurities: doc.compositeSecurities.map(
-      ({ ticker, isin, percentage, refreshedAt }) => ({
-        ticker, isin, percentage, refreshedAt,
+      ({ ticker, isin, percentage, refreshedAt, kind }) => ({
+        ticker,
+        isin,
+        percentage,
+        refreshedAt,
+        ...(kind !== undefined ? { kind } : {}),
       })
     ),
     refreshedAt: doc.refreshedAt,

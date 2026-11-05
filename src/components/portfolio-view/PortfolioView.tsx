@@ -3,6 +3,7 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
+import LinearProgress from '@mui/material/LinearProgress';
 import { usePortfolio } from '../../hooks/usePortfolio';
 import { useFlattenedAllocations } from '../../hooks/useFlattenedAllocations';
 import { useTagBreakdown } from '../../hooks/useTagBreakdown';
@@ -13,7 +14,9 @@ import { ConcentrationBar } from './ConcentrationBar';
 import { colors, fonts } from '../../theme/tokens';
 import { formatDollars, formatDate } from '../../utils/format';
 import { computeDataFreshness } from '../../domain/data-freshness';
-import type { ViewMode } from '../../domain/types';
+import type { Holding, ViewMode } from '../../domain/types';
+import { countCompanies } from '../../domain/aggregation';
+import { computeTagLoadedShare } from '../../domain/tag-analysis';
 
 interface TabItem {
   readonly key: 'holdings' | 'tag';
@@ -136,6 +139,76 @@ function TagCompositionNote({
   );
 }
 
+interface TagLoadingNoteProps {
+  readonly loadedShare: number;
+}
+
+export function TagLoadingNote({ loadedShare }: TagLoadingNoteProps) {
+  // Floor so the note never claims 100% while something is still pending.
+  const loadedPercent = Math.floor(loadedShare * 100);
+
+  return (
+    <Box
+      role="status"
+      data-testid="tag-loading-note"
+      sx={{ mt: -2, mb: 3, fontSize: 12.5, color: colors.inkMuted }}
+    >
+      <Box component="span">
+        Still loading fund holdings' tags, so this split is provisional —
+        tags loaded for {loadedPercent}% of portfolio value.
+      </Box>
+      <LinearProgress
+        variant="determinate"
+        value={loadedPercent}
+        aria-label="Share of portfolio value with tags loaded"
+        sx={{
+          mt: 0.75,
+          height: 3,
+          borderRadius: 2,
+          bgcolor: colors.borderSoft,
+          '& .MuiLinearProgress-bar': { bgcolor: colors.neutralDot },
+        }}
+      />
+    </Box>
+  );
+}
+
+interface FailedHoldingsAlertProps {
+  readonly failedTickers: readonly string[];
+  readonly holdings: readonly Holding[];
+}
+
+export function FailedHoldingsAlert({
+  failedTickers,
+  holdings,
+}: FailedHoldingsAlertProps) {
+  const pricedTickers = new Set(
+    holdings
+      .filter((h) => h.overridePrice !== undefined)
+      .map((h) => h.ticker),
+  );
+  const excluded = failedTickers.filter((t) => !pricedTickers.has(t));
+  const unflattened = failedTickers.filter((t) => pricedTickers.has(t));
+
+  return (
+    <Alert severity="warning" sx={{ mb: 2 }} data-testid="failed-holdings">
+      Could not fetch data for some of your holdings.
+      {excluded.length > 0 && (
+        <Box>
+          Excluded from the total and all percentages because no price is
+          available: {excluded.join(', ')}.
+        </Box>
+      )}
+      {unflattened.length > 0 && (
+        <Box>
+          Shown as single securities at the price in your CSV and not
+          flattened: {unflattened.join(', ')}.
+        </Box>
+      )}
+    </Alert>
+  );
+}
+
 function Chip({
   dot,
   children,
@@ -179,7 +252,11 @@ export function PortfolioView() {
     [allocations],
   );
   const companyCount = useMemo(
-    () => allocations.filter((a) => !a.isUnknown).length,
+    () => countCompanies(allocations),
+    [allocations],
+  );
+  const tagLoadedShare = useMemo(
+    () => computeTagLoadedShare(allocations),
     [allocations],
   );
 
@@ -355,11 +432,10 @@ export function PortfolioView() {
         </Box>
 
         {state.failedTickers.length > 0 && (
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            Could not fetch data for:{' '}
-            {state.failedTickers.join(', ')}. Holdings with a price in your
-            CSV are shown as single securities and are not flattened.
-          </Alert>
+          <FailedHoldingsAlert
+            failedTickers={state.failedTickers}
+            holdings={state.holdings}
+          />
         )}
 
         {activeTab === 'holdings' ? (
@@ -381,6 +457,9 @@ export function PortfolioView() {
               dimensionName={selectedTagName}
               compositionAsOf={freshness.compositionAsOf}
             />
+            {state.constituentLoadStatus === 'loading' && (
+              <TagLoadingNote loadedShare={tagLoadedShare} />
+            )}
             <AllocationList
               viewMode={state.viewMode}
               allocations={allocations}

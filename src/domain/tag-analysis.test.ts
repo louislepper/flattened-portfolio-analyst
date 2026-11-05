@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { computeTagBreakdown } from './tag-analysis';
+import {
+  computeTagBreakdown,
+  computeTagLoadedShare,
+  NO_DATA,
+  NON_EQUITY,
+  UNCLASSIFIED,
+  UNKNOWN_LOADING,
+  UNTAGGED,
+} from './tag-analysis';
 import type { FlattenedAllocation } from './types';
 
 function makeAllocation(
@@ -14,9 +22,9 @@ function makeAllocation(
     percentage: 0,
     price: null,
     tags: [],
-    tagsLoaded: true,
+    tagStatus: 'loaded',
     components: [],
-    isUnknown: false,
+    kind: 'security',
     ...overrides,
   };
 }
@@ -171,13 +179,13 @@ describe('computeTagBreakdown', () => {
               value: 'Large Cap',
             },
           ],
-          tagsLoaded: true,
+          tagStatus: 'loaded',
         }),
         makeAllocation({
           ticker: 'MSFT',
           totalValueCents: 30000,
           tags: [],
-          tagsLoaded: false,
+          tagStatus: 'pending',
         }),
       ];
 
@@ -204,13 +212,13 @@ describe('computeTagBreakdown', () => {
           ticker: 'LOADING',
           totalValueCents: 20000,
           tags: [],
-          tagsLoaded: false,
+          tagStatus: 'pending',
         }),
         makeAllocation({
           ticker: 'UNTAGGED',
           totalValueCents: 30000,
           tags: [],
-          tagsLoaded: true,
+          tagStatus: 'loaded',
         }),
       ];
 
@@ -230,4 +238,138 @@ describe('computeTagBreakdown', () => {
       expect(untagged.totalValueCents).toBe(30000);
     },
   );
+});
+
+describe('computeTagBreakdown buckets', () => {
+  const sector = (value: string) => [
+    { key: 'sector', name: 'Sector', value },
+  ];
+
+  const mixed: FlattenedAllocation[] = [
+    makeAllocation({ ticker: 'AAPL', totalValueCents: 30000, tags: sector('Tech') }),
+    makeAllocation({ ticker: 'MSFT', totalValueCents: 10000, tags: sector('Tech') }),
+    makeAllocation({ ticker: 'JPM', totalValueCents: 5000, tags: sector('Finance') }),
+    makeAllocation({ ticker: 'PEND', totalValueCents: 8000, tagStatus: 'pending' }),
+    makeAllocation({ ticker: 'GONE', totalValueCents: 7000, tagStatus: 'failed' }),
+    makeAllocation({ ticker: 'BARE', totalValueCents: 6000 }),
+    makeAllocation({
+      ticker: 'Non-equity holdings (from GOVI)',
+      kind: 'non-equity',
+      totalValueCents: 20000,
+    }),
+    makeAllocation({
+      ticker: 'Unclassified holdings (from IEFA)',
+      kind: 'unresolved',
+      totalValueCents: 9000,
+    }),
+    makeAllocation({
+      ticker: 'Unknown (From IEFA)',
+      kind: 'unknown',
+      totalValueCents: 5000,
+    }),
+  ];
+
+  it('puts every kind of row in its own bucket', () => {
+    const result = computeTagBreakdown(mixed, 'sector');
+    const byValue = Object.fromEntries(
+      result.map((r) => [r.tagValue, r.totalValueCents]),
+    );
+
+    expect(byValue).toEqual({
+      Tech: 40000,
+      Finance: 5000,
+      [UNKNOWN_LOADING]: 8000,
+      [NO_DATA]: 7000,
+      [NON_EQUITY]: 20000,
+      [UNCLASSIFIED]: 9000,
+      [UNTAGGED]: 11000,
+    });
+  });
+
+  it('has percentages summing to 1, sorted descending', () => {
+    const result = computeTagBreakdown(mixed, 'sector');
+
+    expect(result.reduce((s, r) => s + r.percentage, 0)).toBeCloseTo(1);
+    const pcts = result.map((r) => r.percentage);
+    expect(pcts).toEqual([...pcts].sort((a, b) => b - a));
+    expect(result[0]).toMatchObject({ tagValue: 'Tech', percentage: 0.4 });
+  });
+
+  it('never uses a tag on a non-equity or unresolved row', () => {
+    const result = computeTagBreakdown([
+      makeAllocation({
+        ticker: 'Non-equity holdings (from GOVI)',
+        kind: 'non-equity',
+        totalValueCents: 100,
+        tags: sector('Telecom'),
+      }),
+      makeAllocation({
+        ticker: 'Unclassified holdings (from GOVI)',
+        kind: 'unresolved',
+        totalValueCents: 100,
+        tags: sector('Telecom'),
+      }),
+    ], 'sector');
+
+    expect(result.map((r) => r.tagValue).sort()).toEqual(
+      [NON_EQUITY, UNCLASSIFIED].sort(),
+    );
+  });
+
+  it('uses a tag a failed row somehow has rather than "No data"', () => {
+    const result = computeTagBreakdown([
+      makeAllocation({
+        ticker: 'X',
+        totalValueCents: 100,
+        tagStatus: 'failed',
+        tags: sector('Tech'),
+      }),
+    ], 'sector');
+
+    expect(result[0].tagValue).toBe('Tech');
+  });
+
+  it('has no loading bucket once nothing is pending', () => {
+    const settled = mixed.filter((a) => a.tagStatus !== 'pending');
+    const result = computeTagBreakdown(settled, 'sector');
+
+    expect(result.map((r) => r.tagValue)).not.toContain(UNKNOWN_LOADING);
+  });
+});
+
+describe('computeTagLoadedShare', () => {
+  it('is 0 when every row is pending', () => {
+    expect(computeTagLoadedShare([
+      makeAllocation({ ticker: 'A', totalValueCents: 100, tagStatus: 'pending' }),
+      makeAllocation({ ticker: 'B', totalValueCents: 300, tagStatus: 'pending' }),
+    ])).toBe(0);
+  });
+
+  it('weights by value, not by count', () => {
+    expect(computeTagLoadedShare([
+      makeAllocation({ ticker: 'A', totalValueCents: 900 }),
+      makeAllocation({ ticker: 'B', totalValueCents: 50, tagStatus: 'pending' }),
+      makeAllocation({ ticker: 'C', totalValueCents: 50, tagStatus: 'pending' }),
+    ])).toBeCloseTo(0.9);
+  });
+
+  it('counts aggregate rows as loaded', () => {
+    expect(computeTagLoadedShare([
+      makeAllocation({ ticker: 'A', totalValueCents: 100, tagStatus: 'pending' }),
+      makeAllocation({ ticker: 'N', kind: 'non-equity', totalValueCents: 100 }),
+      makeAllocation({ ticker: 'U', kind: 'unresolved', totalValueCents: 100 }),
+      makeAllocation({ ticker: 'R', kind: 'unknown', totalValueCents: 100 }),
+    ])).toBeCloseTo(0.75);
+  });
+
+  it('reaches 1 when the only unloaded rows failed', () => {
+    expect(computeTagLoadedShare([
+      makeAllocation({ ticker: 'A', totalValueCents: 100 }),
+      makeAllocation({ ticker: 'B', totalValueCents: 900, tagStatus: 'failed' }),
+    ])).toBe(1);
+  });
+
+  it('is 1 for an empty portfolio', () => {
+    expect(computeTagLoadedShare([])).toBe(1);
+  });
 });
